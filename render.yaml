@@ -1,0 +1,28 @@
+# One-click deploy on Render: dashboard.render.com -> New -> Blueprint -> pick this repo.
+services:
+  - type: web
+    name: consultancy
+    runtime: node
+    plan: starter            # needed for the persistent disk (SQLite database); free plan loses data on restart
+    buildCommand: "true"
+    startCommand: node --disable-warning=ExperimentalWarning src/server.js
+    healthCheckPath: /api/health
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
+      - key: DB_PATH
+        value: /var/data/app.db
+      - key: TRUST_PROXY
+        value: "true"
+      - key: PAYMENT_PROVIDER
+        value: mock          # demo payments; switch to stripe + keys when going live
+      - key: BASE_URL
+        sync: false          # e.g. https://consultancy.onrender.com
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

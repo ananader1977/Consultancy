@@ -37,3 +37,7 @@ Docker: `docker build -t consultancy . && docker run -p 3000:3000 -v $PWD/data:/
 - Invoice PDFs use a built-in Latin-1 PDF writer: Arabic names appear as `?` on the PDF (emails/screens are fine).
 - Run a single instance (SQLite).
 - Admin password reset: `npm run create-admin -- email@example.com NewPassw0rd123`.
+
+## Hosting (website)
+This app needs a Node server and a database, so GitHub Pages cannot host it. Use `render.yaml`:
+Render → New → Blueprint → select this repo → fill `BASE_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`. Deploys automatically on every push.
