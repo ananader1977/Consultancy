@@ -1,0 +1,17 @@
+{
+  "name": "consultancy-operation",
+  "version": "1.0.0",
+  "description": "Mobile-responsive appointment booking system with card payments, VAT invoices, WhatsApp/email notifications and an admin console.",
+  "type": "module",
+  "main": "src/server.js",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch src/server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test --test-concurrency=1 test/*.test.js",
+    "create-admin": "node --disable-warning=ExperimentalWarning scripts/create-admin.js",
+    "seed-demo": "node --disable-warning=ExperimentalWarning scripts/seed-demo.js"
+  },
+  "license": "MIT",
+  "private": true
+}
