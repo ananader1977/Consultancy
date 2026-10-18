@@ -194,3 +194,20 @@ describe('client emails: manage link and booking changes', () => {
     assert.match(t.body.company, /لمى الصفدي/);
   });
 });
+
+describe('contact details', () => {
+  let app;
+  before(async () => { app = await startTestApp(); });
+  after(() => app.close());
+  test('contact details are public, in emails and in the terms', async () => {
+    const c = (await app.call('GET', '/api/contact')).body;
+    assert.deepEqual([c.phone, c.email, c.facebook], ['+971 52 806 6121', 'info@lamaalsafadi.ae', 'lama_alsafadi']);
+    assert.match((await app.call('GET', '/api/terms')).body.text, /info@lamaalsafadi\.ae/);
+    assert.match((await app.call('GET', '/api/terms?lang=ar')).body.text, /info@lamaalsafadi\.ae/);
+    assert.equal(app.ctx.settings().owner_email, 'info@lamaalsafadi.ae', 'owner notifications go to the business email by default');
+    const b = await app.book(app.slot(2, 10).id, { email: 'c1@example.com' });
+    await app.pay(b);
+    const owner = app.ctx.db.prepare("SELECT * FROM outbox WHERE to_addr='info@lamaalsafadi.ae'").all();
+    assert.ok(owner.length >= 1, 'owner copy sent to info@lamaalsafadi.ae');
+  });
+});

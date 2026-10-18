@@ -17,7 +17,7 @@ const MUTED = '#6b7280';
 const LINE = '#d1d5db';
 
 /** Render a UAE tax invoice (or tax credit note) as a PDF buffer. */
-export function renderInvoicePdf(inv, { creditNote = false } = {}) {
+export function renderInvoicePdf(inv, { creditNote = false, contact = null } = {}) {
   const docNo = creditNote ? inv.credit_note_number : inv.number;
   const docDate = creditNote ? inv.credit_note_at : inv.issued_at;
   const pdf = new Pdf({ title: `${creditNote ? 'Tax Credit Note' : 'Tax Invoice'} ${docNo}`, author: inv.supplier_name });
@@ -40,7 +40,8 @@ export function renderInvoicePdf(inv, { creditNote = false } = {}) {
   pdf.text('FROM', L, y, { size: 8, bold: true, fill: MUTED });
   pdf.text('BILL TO', 310, y, { size: 8, bold: true, fill: MUTED });
   y += 14;
-  const from = [inv.supplier_name, ...(inv.supplier_address ? pdf.wrap(inv.supplier_address, 230, 10) : [])];
+  const contactLines = contact ? [contact.contact_phone && `Tel: ${contact.contact_phone}`, contact.contact_email && `Email: ${contact.contact_email}`].filter(Boolean) : [];
+  const from = [inv.supplier_name, ...(inv.supplier_address ? pdf.wrap(inv.supplier_address, 230, 10) : []), ...contactLines];
   const to = [inv.customer_name, inv.customer_email, inv.customer_mobile];
   from.forEach((t, i) => pdf.text(t, L, y + i * 13, { size: 10, bold: i === 0, fill: INK }));
   to.forEach((t, i) => pdf.text(t, 310, y + i * 13, { size: 10, bold: i === 0, fill: INK }));
@@ -92,6 +93,7 @@ export function renderInvoicePdf(inv, { creditNote = false } = {}) {
   pdf.text(creditNote ? 'This tax credit note reverses the invoice above following an approved refund to the original card.' : 'Paid in full by card. Thank you.', L, y, { size: 10, fill: INK });
   pdf.line(L, 790, R, 790, { stroke: LINE });
   pdf.text(inv.supplier_name, PAGE_W / 2, 804, { size: 8, bold: true, align: 'center', fill: MUTED });
-  pdf.text(`Computer-generated document, no signature required. Generated ${fmtStamp(Date.now())} (Dubai time).`, PAGE_W / 2, 816, { size: 8, align: 'center', fill: MUTED });
+  const contactFoot = contact ? [contact.contact_phone, contact.contact_email, contact.facebook && `facebook.com/${contact.facebook}`].filter(Boolean).join('  |  ') : '';
+  pdf.text(`${contactFoot ? contactFoot + '  -  ' : ''}Computer-generated document, no signature required. Generated ${fmtStamp(Date.now())}.`, PAGE_W / 2, 816, { size: 7.5, align: 'center', fill: MUTED });
   return pdf.toBuffer();
 }

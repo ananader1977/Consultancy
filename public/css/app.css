@@ -69,3 +69,10 @@ dialog{border:0;border-radius:14px;padding:0;max-width:min(560px,94vw);width:100
 [dir=rtl] body{font-family:system-ui,-apple-system,"Segoe UI",Tahoma,"Noto Naskh Arabic",sans-serif}
 [dir=rtl] .kv dd{text-align:right}
 [dir=rtl] input[dir=ltr]{text-align:right}
+.site-foot{background:#fff;border-top:1px solid var(--line);margin-top:24px}
+.site-foot h2{font-size:1.05rem;margin:0 0 8px}
+.site-foot ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 18px}
+.site-foot li{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.site-foot .k{color:var(--muted);font-size:.85rem;min-width:84px}
+.site-foot a{font-weight:600;text-decoration:none}
+@media print{.site-foot{display:none}}

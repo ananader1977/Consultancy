@@ -554,6 +554,9 @@ export function createService(ctx) {
       zoom_link: (v) => url(v),
       teams_link: (v) => url(v),
       company_name_ar: (v) => str(v, 150),
+      contact_phone: (v) => str(v, 40),
+      contact_email: (v) => { v = str(v, 254).toLowerCase(); if (v && !isEmail(v)) throw new HttpError(400, 'Contact email is invalid.'); return v; },
+      facebook: (v) => str(v, 120).replace(/^https?:\/\/(www\.)?facebook\.com\//i, '').replace(/\/+$/, ''),
       terms_text_ar: (v) => { v = String(v ?? '').replace(/\r\n/g, '\n').trim().slice(0, 20000); if (v.length < 20) throw new HttpError(400, 'Arabic Terms & Conditions text is too short.'); return v; },
       terms_text: (v) => { v = String(v ?? '').replace(/\r\n/g, '\n').trim().slice(0, 20000); if (v.length < 20) throw new HttpError(400, 'Terms & Conditions text is too short.'); return v; },
       closed_days: (v) => {

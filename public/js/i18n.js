@@ -11,6 +11,7 @@ export const BRAND_AR = 'لمى الصفدي للاستشارات الإجتما
 const D = {
   en: {
     manageNav: 'Manage booking', langBtn: 'العربية', dubai: 'Dubai',
+    contactUs: 'Contact us', phoneL: 'Phone', whatsappL: 'WhatsApp', emailF: 'Email', facebookL: 'Facebook',
     network: 'Network error. Please check your connection.',
     bookTitle: 'Book a consultation',
     intro: (a, b, m) => `Mon–Sat, ${a}:00–${b}:00 Dubai time · 1-hour sessions · your slot is held for ${m} minutes while you pay.`,
@@ -58,6 +59,7 @@ const D = {
   },
   ar: {
     manageNav: 'إدارة الحجز', langBtn: 'English', dubai: 'بتوقيت دبي',
+    contactUs: 'تواصل معنا', phoneL: 'الهاتف', whatsappL: 'واتساب', emailF: 'البريد الإلكتروني', facebookL: 'فيسبوك',
     network: 'خطأ في الشبكة. يرجى التحقق من الاتصال.',
     bookTitle: 'احجز استشارة',
     intro: (a, b, m) => `من الاثنين إلى السبت، ${a}:00–${b}:00 بتوقيت دبي · جلسات مدتها ساعة · يُحجز موعدك لمدة ${m} دقائق أثناء الدفع.`,
@@ -129,4 +131,28 @@ export function setupPage() {
     });
     nav.append(btn);
   }
+  addFooter();
+}
+
+function el(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  for (const k of kids) e.append(k);
+  return e;
+}
+async function addFooter() {
+  let c;
+  try { c = await (await fetch('/api/contact', { headers: { 'X-Lang': LANG } })).json(); } catch { return; }
+  if (!c || (!c.phone && !c.email && !c.facebook)) return;
+  const items = [];
+  const digits = String(c.phone || '').replace(/[^\d]/g, '');
+  if (c.phone) {
+    items.push(el('li', {}, el('span', { class: 'k' }, T.phoneL), el('a', { href: `tel:+${digits}`, dir: 'ltr' }, c.phone)));
+    items.push(el('li', {}, el('span', { class: 'k' }, T.whatsappL), el('a', { href: `https://wa.me/${digits}`, target: '_blank', rel: 'noopener', dir: 'ltr' }, c.phone)));
+  }
+  if (c.email) items.push(el('li', {}, el('span', { class: 'k' }, T.emailF), el('a', { href: `mailto:${c.email}`, dir: 'ltr' }, c.email)));
+  if (c.facebook) items.push(el('li', {}, el('span', { class: 'k' }, T.facebookL), el('a', { href: `https://www.facebook.com/${encodeURIComponent(c.facebook)}`, target: '_blank', rel: 'noopener', dir: 'ltr' }, c.facebook)));
+  const name = AR ? c.companyAr || BRAND_AR : c.company;
+  const foot = el('footer', { class: 'site-foot' }, el('div', { class: 'wrap' }, el('h2', {}, T.contactUs), el('ul', {}, ...items), el('p', { class: 'small muted' }, name)));
+  document.body.append(foot);
 }

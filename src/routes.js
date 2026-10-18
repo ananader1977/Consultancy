@@ -42,6 +42,10 @@ export function registerRoutes(app, ctx) {
       now: ctx.now(), today: dubaiMidnight(ctx.now()), paymentProvider: ctx.payments.name,
     });
   });
+  app.get('/api/contact', (req, res) => {
+    const s = ctx.settings();
+    res.json({ company: s.company_name, companyAr: s.company_name_ar, phone: s.contact_phone, email: s.contact_email, facebook: s.facebook, address: s.company_address });
+  });
   app.get('/api/terms', (req, res) => {
     const s = ctx.settings();
     const ar = req.query.lang === 'ar';
@@ -99,12 +103,12 @@ export function registerRoutes(app, ctx) {
   const pdf = (res, buf, name) => res.send(buf, 'application/pdf', 200, { 'Content-Disposition': `inline; filename="${name}"` });
   app.get('/api/invoices/:number/pdf', (req, res) => {
     const inv = invoiceByNumber(req);
-    pdf(res, renderInvoicePdf(inv), `${inv.number}.pdf`);
+    pdf(res, renderInvoicePdf(inv, { contact: ctx.settings() }), `${inv.number}.pdf`);
   });
   app.get('/api/invoices/:number/credit-note.pdf', (req, res) => {
     const inv = invoiceByNumber(req);
     if (!inv.credit_note_number) throw new HttpError(404, 'No credit note for this invoice');
-    pdf(res, renderInvoicePdf(inv, { creditNote: true }), `${inv.credit_note_number}.pdf`);
+    pdf(res, renderInvoicePdf(inv, { creditNote: true, contact: ctx.settings() }), `${inv.credit_note_number}.pdf`);
   });
 
   // ======================== payments ========================
@@ -268,12 +272,12 @@ export function registerRoutes(app, ctx) {
   };
   app.get('/api/admin/invoices/:id/pdf', admin, (req, res) => {
     const inv = invoiceById(req);
-    pdf(res, renderInvoicePdf(inv), `${inv.number}.pdf`);
+    pdf(res, renderInvoicePdf(inv, { contact: ctx.settings() }), `${inv.number}.pdf`);
   });
   app.get('/api/admin/invoices/:id/credit-note.pdf', admin, (req, res) => {
     const inv = invoiceById(req);
     if (!inv.credit_note_number) throw new HttpError(404, 'No credit note for this invoice');
-    pdf(res, renderInvoicePdf(inv, { creditNote: true }), `${inv.credit_note_number}.pdf`);
+    pdf(res, renderInvoicePdf(inv, { creditNote: true, contact: ctx.settings() }), `${inv.credit_note_number}.pdf`);
   });
   app.get('/api/admin/outbox', admin, (req, res) => {
     res.json({ messages: ctx.db.prepare('SELECT id,ts,channel,to_addr,subject,status,error,booking_id,attachment FROM outbox ORDER BY id DESC LIMIT ?').all(Math.min(Number(req.query.limit) || 100, 300)) });

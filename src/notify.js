@@ -55,7 +55,11 @@ export function createNotifier(ctx) {
   const layout = (s, title, inner) => `<!doctype html><html><body style="margin:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#1f2937">
 <div style="max-width:560px;margin:0 auto;padding:16px"><div style="background:#fff;border-bottom:3px solid #5b4a8a;padding:16px 22px;border-radius:12px 12px 0 0"><table style="border-collapse:collapse"><tr><td style="padding:0 12px 0 0;vertical-align:middle"><img src="${escHtml(config.baseUrl)}/logo.png" width="48" height="48" alt="" style="display:block"></td><td style="vertical-align:middle"><div style="font-size:13px;color:#6b7280">${escHtml(s.company_name)}</div><div style="font-size:20px;font-weight:bold;color:#5b4a8a">${escHtml(title)}</div></td></tr></table></div>
 <div style="background:#fff;padding:22px;border-radius:0 0 12px 12px;line-height:1.5">${inner}</div>
-<p style="font-size:12px;color:#6b7280;text-align:center">${escHtml(s.company_name)}${s.company_address ? ' - ' + escHtml(s.company_address) : ''}</p></div></body></html>`;
+<p style="font-size:12px;color:#6b7280;text-align:center;line-height:1.6">${escHtml(s.company_name)}${s.company_address ? ' - ' + escHtml(s.company_address) : ''}<br>${[
+  s.contact_phone && `Tel / WhatsApp: <a href="tel:${escHtml(s.contact_phone.replace(/[^+\d]/g, ''))}" style="color:#5b4a8a">${escHtml(s.contact_phone)}</a>`,
+  s.contact_email && `Email: <a href="mailto:${escHtml(s.contact_email)}" style="color:#5b4a8a">${escHtml(s.contact_email)}</a>`,
+  s.facebook && `Facebook: <a href="https://www.facebook.com/${escHtml(s.facebook)}" style="color:#5b4a8a">${escHtml(s.facebook)}</a>`,
+].filter(Boolean).join(' &nbsp;|&nbsp; ')}</p></div></body></html>`;
 
   const details = (b, s) => {
     const where = b.service_kind === 'online'
@@ -77,7 +81,7 @@ export function createNotifier(ctx) {
   const invoiceAttachment = (inv, creditNote = false) => ({
     filename: `${creditNote ? inv.credit_note_number : inv.number}.pdf`,
     contentType: 'application/pdf',
-    content: renderInvoicePdf({ ...inv, reference: inv.reference }, { creditNote }),
+    content: renderInvoicePdf({ ...inv, reference: inv.reference }, { creditNote, contact: ctx.settings() }),
   });
   const manageBlock = (b) => `<div style="margin:18px 0 4px;padding:14px 16px;background:#f1edf8;border-radius:10px">
 <div style="font-weight:bold;color:#3b2f63;font-size:15px">Save this link to manage your booking</div>
