@@ -1,4 +1,4 @@
-// Minimal dependency-free PDF writer (A4, built-in Helvetica fonts, text/rect/line).
+// Minimal dependency-free PDF writer (A4, built-in Helvetica fonts, text/rect/line/images).
 // Text is limited to Latin-1; other characters are replaced with "?".
 import zlib from 'node:zlib';
 
@@ -33,6 +33,7 @@ export class Pdf {
     this.title = latin1(title);
     this.author = latin1(author);
     this.pages = [];
+    this.images = []; // { name, width, height, rgb, alpha }
     this.newPage();
   }
   newPage() {
@@ -86,6 +87,16 @@ export class Pdf {
     this.cur.push(`${color(stroke)} RG ${num(lineWidth)} w ${num(x1)} ${num(PAGE_H - y1)} m ${num(x2)} ${num(PAGE_H - y2)} l S`);
     return this;
   }
+  /** Draw a decoded image ({width,height,rgb,alpha}) with its top-left corner at (x, y), scaled to w x h points. */
+  image(img, x, y, w, h) {
+    let entry = this.images.find((e) => e.src === img);
+    if (!entry) {
+      entry = { src: img, name: `Im${this.images.length + 1}` };
+      this.images.push(entry);
+    }
+    this.cur.push(`q ${num(w)} 0 0 ${num(h)} ${num(x)} ${num(PAGE_H - y - h)} cm /${entry.name} Do Q`);
+    return this;
+  }
   toBuffer() {
     const objs = [];
     const add = (buf) => objs.push(Buffer.isBuffer(buf) ? buf : Buffer.from(buf, 'latin1'));
@@ -96,12 +107,30 @@ export class Pdf {
     add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
     add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
     add(`<< /Title (${esc(this.title)}) /Author (${esc(this.author)}) /Producer (Consultancy Operation) >>`);
+    // image objects come after the pages: each image = [smask?] + image
+    let next = 6 + nPages * 2;
+    const imgObjs = [];
+    for (const e of this.images) {
+      const { width, height, rgb, alpha } = e.src;
+      const smaskNo = alpha ? next++ : null;
+      const imgNo = next++;
+      imgObjs.push({ e, smaskNo, imgNo, width, height, rgb, alpha });
+    }
+    const xobjects = imgObjs.length ? ` /XObject << ${imgObjs.map((o) => `/${o.e.name} ${o.imgNo} 0 R`).join(' ')} >>` : '';
     this.pages.forEach((ops, i) => {
       const contentNo = 7 + i * 2;
-      add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_W} ${PAGE_H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentNo} 0 R >>`);
+      add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_W} ${PAGE_H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>${xobjects} >> /Contents ${contentNo} 0 R >>`);
       const data = zlib.deflateSync(Buffer.from(ops.join('\n'), 'latin1'));
       add(Buffer.concat([Buffer.from(`<< /Length ${data.length} /Filter /FlateDecode >>\nstream\n`, 'latin1'), data, Buffer.from('\nendstream', 'latin1')]));
     });
+    const stream = (dict, raw) => {
+      const data = zlib.deflateSync(raw);
+      add(Buffer.concat([Buffer.from(`<< ${dict} /Length ${data.length} /Filter /FlateDecode >>\nstream\n`, 'latin1'), data, Buffer.from('\nendstream', 'latin1')]));
+    };
+    for (const o of imgObjs) {
+      if (o.alpha) stream(`/Type /XObject /Subtype /Image /Width ${o.width} /Height ${o.height} /ColorSpace /DeviceGray /BitsPerComponent 8`, o.alpha);
+      stream(`/Type /XObject /Subtype /Image /Width ${o.width} /Height ${o.height} /ColorSpace /DeviceRGB /BitsPerComponent 8${o.alpha ? ` /SMask ${o.smaskNo} 0 R` : ''}`, o.rgb);
+    }
     const chunks = [Buffer.from('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n', 'latin1')];
     const offsets = [];
     let pos = chunks[0].length;

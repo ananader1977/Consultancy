@@ -53,7 +53,7 @@ export function createNotifier(ctx) {
 
   // ---- email templates -------------------------------------------------------------------
   const layout = (s, title, inner) => `<!doctype html><html><body style="margin:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#1f2937">
-<div style="max-width:560px;margin:0 auto;padding:16px"><div style="background:#0f766e;color:#fff;padding:18px 22px;border-radius:12px 12px 0 0"><div style="font-size:13px;opacity:.85">${escHtml(s.company_name)}</div><div style="font-size:20px;font-weight:bold">${escHtml(title)}</div></div>
+<div style="max-width:560px;margin:0 auto;padding:16px"><div style="background:#fff;border-bottom:3px solid #5b4a8a;padding:16px 22px;border-radius:12px 12px 0 0"><table style="border-collapse:collapse"><tr><td style="padding:0 12px 0 0;vertical-align:middle"><img src="${escHtml(config.baseUrl)}/logo.png" width="48" height="48" alt="" style="display:block"></td><td style="vertical-align:middle"><div style="font-size:13px;color:#6b7280">${escHtml(s.company_name)}</div><div style="font-size:20px;font-weight:bold;color:#5b4a8a">${escHtml(title)}</div></td></tr></table></div>
 <div style="background:#fff;padding:22px;border-radius:0 0 12px 12px;line-height:1.5">${inner}</div>
 <p style="font-size:12px;color:#6b7280;text-align:center">${escHtml(s.company_name)}${s.company_address ? ' - ' + escHtml(s.company_address) : ''}</p></div></body></html>`;
 

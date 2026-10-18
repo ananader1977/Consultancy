@@ -1,7 +1,17 @@
+import fs from 'node:fs';
 import { Pdf, PAGE_W } from './pdf.js';
+import { decodePng } from './png.js';
 import { fmtDate, money, fmtStamp } from './time.js';
 
-const TEAL = '#0f766e';
+const TEAL = '#5b4a8a'; // brand purple (from the logo)
+let LOGO;
+function logo() {
+  if (LOGO === undefined) {
+    try { LOGO = decodePng(fs.readFileSync(new URL('../public/logo.png', import.meta.url))); }
+    catch { LOGO = null; }
+  }
+  return LOGO;
+}
 const INK = '#1f2937';
 const MUTED = '#6b7280';
 const LINE = '#d1d5db';
@@ -15,11 +25,14 @@ export function renderInvoicePdf(inv, { creditNote = false } = {}) {
   const R = PAGE_W - 45;
   const sign = creditNote ? -1 : 1;
 
-  pdf.rect(0, 0, PAGE_W, 96, { fill: TEAL });
-  pdf.text(inv.supplier_name, L, 48, { size: 20, bold: true, fill: '#ffffff' });
-  pdf.text(creditNote ? 'TAX CREDIT NOTE' : 'TAX INVOICE', R, 48, { size: 20, bold: true, align: 'right', fill: '#ffffff' });
-  pdf.text(inv.supplier_trn ? `TRN: ${inv.supplier_trn}` : 'TRN: -', L, 70, { size: 10, fill: '#d1fae5' });
-  pdf.text(`No. ${docNo}`, R, 70, { size: 11, bold: true, align: 'right', fill: '#ffffff' });
+  const lg = logo();
+  const nameX = lg ? L + 66 : L;
+  if (lg) pdf.image(lg, L, 26, 56, 56);
+  pdf.text(inv.supplier_name, nameX, 50, { size: 18, bold: true, fill: INK });
+  pdf.text(inv.supplier_trn ? `TRN: ${inv.supplier_trn}` : 'TRN: -', nameX, 68, { size: 10, fill: MUTED });
+  pdf.text(creditNote ? 'TAX CREDIT NOTE' : 'TAX INVOICE', R, 50, { size: 20, bold: true, align: 'right', fill: TEAL });
+  pdf.text(`No. ${docNo}`, R, 68, { size: 11, bold: true, align: 'right', fill: INK });
+  pdf.rect(L, 92, R - L, 3, { fill: TEAL });
 
   let y = 124;
   pdf.text('FROM', L, y, { size: 8, bold: true, fill: MUTED });
