@@ -81,6 +81,16 @@ export function createAuth(ctx) {
 
 export function ensureAdmin(ctx) {
   const n = ctx.db.prepare('SELECT COUNT(*) AS n FROM admins').get().n;
+  // If ADMIN_EMAIL and ADMIN_PASSWORD are set, make sure that admin exists with that password
+  // (lets you create or reset an admin from the hosting dashboard without a shell).
+  if (n > 0 && ctx.config.adminEmail && ctx.config.adminPassword) {
+    const email = ctx.config.adminEmail.toLowerCase();
+    const hash = hashPassword(ctx.config.adminPassword);
+    const row = ctx.db.prepare('SELECT id FROM admins WHERE email=?').get(email);
+    if (row) ctx.db.prepare('UPDATE admins SET password_hash=? WHERE id=?').run(hash, row.id);
+    else ctx.db.prepare('INSERT INTO admins(email,name,password_hash,created_at) VALUES(?,?,?,?)').run(email, 'Administrator', hash, ctx.now());
+    return null;
+  }
   if (n > 0) return null;
   const email = (ctx.config.adminEmail || 'admin@example.com').toLowerCase();
   let password = ctx.config.adminPassword;
