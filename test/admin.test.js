@@ -211,3 +211,39 @@ describe('contact details', () => {
     assert.ok(owner.length >= 1, 'owner copy sent to info@lamaalsafadi.ae');
   });
 });
+
+describe('admin notifications to info@lamaalsafadi.ae', () => {
+  let app;
+  before(async () => { app = await startTestApp(); await app.login(); });
+  after(() => app.close());
+  const A = (m, p, b) => app.call(m, p, b, { admin: true });
+  const adminMails = (id) => app.ctx.db.prepare("SELECT * FROM outbox WHERE channel='email' AND booking_id=? AND to_addr='info@lamaalsafadi.ae' ORDER BY id").all(id);
+
+  test('new confirmed booking (after payment only) and every modification', async () => {
+    const b = await app.book(app.slot(2, 10).id, { email: '' });
+    const id = app.dbBooking(b.body.reference).id;
+    await app.ctx.flush();
+    assert.equal(adminMails(id).filter((m) => /New confirmed booking/.test(m.subject)).length, 0, 'nothing before payment');
+    await app.pay(b);
+    await app.ctx.flush();
+    assert.equal(adminMails(id).filter((m) => /^\[Admin\] New confirmed booking - /.test(m.subject)).length, 1);
+    await A('PATCH', `/api/admin/bookings/${id}`, { meeting_link: 'https://zoom.us/j/9' });
+    await app.ctx.flush();
+    const mod = adminMails(id).find((m) => /^\[Admin\] Booking modified - /.test(m.subject));
+    assert.ok(mod);
+    assert.match(mod.body, /zoom\.us\/j\/9/);
+    assert.match(mod.body, /No client email on file/);
+    await A('POST', `/api/admin/bookings/${id}/reschedule`, { slotId: app.slot(2, 15).id });
+    await app.ctx.flush();
+    assert.ok(adminMails(id).some((m) => /^\[Admin\] Booking modified \(rescheduled\)/.test(m.subject) && /15:00/.test(m.body)));
+  });
+
+  test('admin can send a test email', async () => {
+    const r = await A('POST', '/api/admin/test-email', {});
+    assert.equal(r.status, 200);
+    assert.equal(r.body.to, 'info@lamaalsafadi.ae');
+    assert.equal(r.body.status, 'logged', 'SMTP not configured in tests');
+    const s = await A('GET', '/api/admin/settings');
+    assert.ok(!('_m_owner_email_1' in s.body.settings));
+  });
+});

@@ -22,6 +22,16 @@ services:
         value: mock          # demo payments; switch to stripe + keys when going live
       - key: ALLOW_MOCK_PAYMENTS
         value: "true"        # Render sets NODE_ENV=production; this allows demo payments until Stripe is set up
+      - key: SMTP_HOST        # email server of info@lamaalsafadi.ae (e.g. smtppro.zoho.com / smtp.office365.com / smtp.gmail.com)
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER        # full mailbox address, e.g. info@lamaalsafadi.ae
+        sync: false
+      - key: SMTP_PASS        # mailbox app password
+        sync: false
+      - key: SMTP_FROM        # e.g. Lama Alsafadi <info@lamaalsafadi.ae>
+        sync: false
       - key: BASE_URL
         sync: false          # e.g. https://consultancy.onrender.com
       - key: ADMIN_EMAIL

@@ -17,13 +17,15 @@ export function createNotifier(ctx) {
   async function email({ to, subject, text, html, attachments = [], bookingId }) {
     if (!to) return null; // client without an email address: WhatsApp / pages only
     const attach = attachments.map((a) => a.filename).join(', ');
-    if (!config.smtp.host) return logRow('email', to, subject, text, 'logged', 'SMTP not configured', bookingId, attach);
+    if (!config.smtp.host) { logRow('email', to, subject, text, 'logged', 'SMTP not configured', bookingId, attach); return { status: 'logged', error: 'SMTP not configured' }; }
     try {
       const from = config.smtp.from || config.smtp.user;
       await sendMail({ ...config.smtp, from, to, subject, text, html, attachments });
       logRow('email', to, subject, text, 'sent', null, bookingId, attach);
+      return { status: 'sent' };
     } catch (e) {
       logRow('email', to, subject, text, 'failed', String(e.message || e), bookingId, attach);
+      return { status: 'failed', error: String(e.message || e) };
     }
   }
 
@@ -71,7 +73,7 @@ export function createNotifier(ctx) {
   };
   const plain = (b) => `Reference: ${b.reference}\nService: ${b.service_name}\nWhen: ${fmtRange(b.start_ts, b.end_ts)}\nAmount: AED ${money(b.total)}${b.invoice_number ? `\nInvoice: ${b.invoice_number}` : ''}`;
   const manageUrl = (b) => `${config.baseUrl}/manage.html?ref=${encodeURIComponent(b.reference)}&t=${b.manage_token}`;
-  const ownerTo = (s) => s.owner_email || config.smtp.from || '';
+  const ownerTo = (s) => s.owner_email || 'info@lamaalsafadi.ae';
   const icsAttachment = (b, s, method) => ({
     filename: `${b.reference}.ics`,
     contentType: 'text/calendar; charset=utf-8',
@@ -89,19 +91,25 @@ export function createNotifier(ctx) {
 <div style="font-size:14px;margin:6px 0 12px">View, reschedule or cancel your booking at any time. Booking reference: <b>${escHtml(b.reference)}</b></div>
 <a href="${escHtml(manageUrl(b))}" style="display:inline-block;background:#5b4a8a;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:bold">Manage my booking</a>
 <div style="font-size:12px;color:#6b7280;margin-top:10px;word-break:break-all">${escHtml(manageUrl(b))}</div></div>`;
-  const sendBoth = async (b, s, { subject, headline, intro, extraClient = '', attachments = [], ownerNote, waKind, manage = true }) => {
+  const sendBoth = async (b, s, { subject, headline, intro, extraClient = '', attachments = [], ownerNote, ownerSubject, waKind, manage = true }) => {
     const clientHtml = layout(s, headline, `<p>Dear ${escHtml(b.customer_name)},</p><p>${intro}</p>${details(b, s)}${extraClient}${manage ? manageBlock(b) : ''}`);
     await email({ to: b.email, subject, text: `Dear ${b.customer_name},\n\n${intro.replace(/<[^>]+>/g, '')}\n\n${plain(b)}${manage ? `\n\nSave this link to view, reschedule or cancel your booking:\n${manageUrl(b)}` : ''}`, html: clientHtml, attachments, bookingId: b.id });
     const owner = ownerTo(s);
     if (owner) {
       const ownerHtml = layout(s, `[Admin] ${headline}`, `<p>${ownerNote}</p>${details(b, s)}<p style="font-size:14px">Customer: <b>${escHtml(b.customer_name)}</b><br>Mobile: ${escHtml(b.mobile)}<br>Email: ${escHtml(b.email || '-')}</p>`);
-      await email({ to: owner, subject: `[Admin] ${subject}`, text: `${ownerNote.replace(/<[^>]+>/g, '')}\n\n${plain(b)}\nCustomer: ${b.customer_name} | ${b.mobile} | ${b.email || 'no email'}`, html: ownerHtml, bookingId: b.id });
+      await email({ to: owner, subject: `[Admin] ${ownerSubject || subject}`, text: `${ownerNote.replace(/<[^>]+>/g, '')}\n\n${plain(b)}\nCustomer: ${b.customer_name} | ${b.mobile} | ${b.email || 'no email'}`, html: ownerHtml, bookingId: b.id });
     }
     if (waKind) await whatsapp({ booking: b, kind: waKind });
   };
 
   return {
     email,
+    async testEmail(to) {
+      const s = ctx.settings();
+      to = to || ownerTo(s);
+      const r = await email({ to, subject: 'Test email - booking notifications', text: 'This is a test. Booking notifications will arrive at this address.', html: layout(s, 'Test email', '<p>This is a test. New confirmed and modified booking notifications will arrive at this address.</p>') });
+      return { to, ...r };
+    },
     whatsapp,
     async bookingConfirmed(b, inv) {
       const s = ctx.settings();
@@ -111,7 +119,8 @@ export function createNotifier(ctx) {
         intro: 'Thank you - your payment was received and your appointment is confirmed. Your tax invoice and a calendar entry are attached.',
         extraClient: `<p style="font-size:14px">Rescheduling is free up to ${s.free_reschedule_hours} hours before the appointment.</p>`,
         attachments: [invoiceAttachment(inv), icsAttachment(b, s, 'PUBLISH')],
-        ownerNote: `New paid booking received (AED ${money(b.total)}).`,
+        ownerSubject: `New confirmed booking - ${b.reference} - ${b.customer_name} - ${fmtStamp(b.start_ts)}`,
+        ownerNote: `New confirmed booking: payment received (AED ${money(b.total)}).`,
         waKind: 'confirmation',
       });
     },
@@ -122,7 +131,8 @@ export function createNotifier(ctx) {
         headline: 'Your appointment was rescheduled',
         intro: `Your appointment has been moved to <b>${escHtml(fmtRange(b.start_ts, b.end_ts))}</b>. An updated calendar entry is attached.`,
         attachments: [icsAttachment(b, s, 'PUBLISH')],
-        ownerNote: `Booking ${escHtml(b.reference)} was rescheduled by ${escHtml(by)}.`,
+        ownerSubject: `Booking modified (rescheduled) - ${b.reference} - ${b.customer_name}`,
+        ownerNote: `Booking ${escHtml(b.reference)} was rescheduled by ${escHtml(by)}. New time: <b>${escHtml(fmtRange(b.start_ts, b.end_ts))}</b>.`,
         extraClient: '<p style="font-size:14px">The details above are your updated booking.</p>',
         waKind: 'update',
       });
@@ -145,7 +155,8 @@ export function createNotifier(ctx) {
         intro: 'We updated your booking. Your latest booking details are below and an updated calendar entry is attached.',
         extraClient: `<p style="font-size:14px;margin-bottom:0">What changed:</p><ul style="font-size:14px;margin-top:4px">${list}</ul>`,
         attachments: [icsAttachment(b, s, 'PUBLISH')],
-        ownerNote: `Booking ${escHtml(b.reference)} was updated (${escHtml(changes.join(', '))}). The client was emailed the new details.`,
+        ownerSubject: `Booking modified - ${b.reference} - ${b.customer_name}`,
+        ownerNote: `Booking ${escHtml(b.reference)} was modified.</p><ul style="font-size:14px">${list}</ul><p>${b.email ? 'The client was emailed the new details.' : 'No client email on file; the client was informed by WhatsApp only.'}`,
         waKind: 'update',
       });
     },

@@ -11,7 +11,7 @@ export const BRAND_AR = 'لما الصفدي لدراسات العلوم الإ�
 const D = {
   en: {
     manageNav: 'Manage booking', langBtn: 'العربية', dubai: 'Dubai',
-    contactUs: 'Contact us', phoneL: 'Phone', whatsappL: 'WhatsApp', emailF: 'Email', facebookL: 'Facebook',
+    contactUs: 'Contact us', phoneL: 'Phone', whatsappL: 'WhatsApp', phoneWa: 'Phone / WhatsApp', emailF: 'Email', facebookL: 'Facebook',
     network: 'Network error. Please check your connection.',
     bookTitle: 'Book a consultation',
     intro: (a, b, m) => `Mon–Sat, ${a}:00–${b}:00 Dubai time · 1-hour sessions · your slot is held for ${m} minutes while you pay.`,
@@ -61,7 +61,7 @@ const D = {
   },
   ar: {
     manageNav: 'إدارة الحجز', langBtn: 'English', dubai: 'بتوقيت دبي',
-    contactUs: 'تواصل معنا', phoneL: 'الهاتف', whatsappL: 'واتساب', emailF: 'البريد الإلكتروني', facebookL: 'فيسبوك',
+    contactUs: 'تواصل معنا', phoneL: 'الهاتف', whatsappL: 'واتساب', phoneWa: 'الهاتف / واتساب', emailF: 'البريد الإلكتروني', facebookL: 'فيسبوك',
     network: 'خطأ في الشبكة. يرجى التحقق من الاتصال.',
     bookTitle: 'احجز استشارة',
     intro: (a, b, m) => `من الاثنين إلى السبت، ${a}:00–${b}:00 بتوقيت دبي · جلسات مدتها ساعة · يُحجز موعدك لمدة ${m} دقائق أثناء الدفع.`,
@@ -151,12 +151,12 @@ async function addFooter() {
   const items = [];
   const digits = String(c.phone || '').replace(/[^\d]/g, '');
   if (c.phone) {
-    items.push(el('li', {}, el('span', { class: 'k' }, T.phoneL), el('a', { href: `tel:+${digits}`, dir: 'ltr' }, c.phone)));
-    items.push(el('li', {}, el('span', { class: 'k' }, T.whatsappL), el('a', { href: `https://wa.me/${digits}`, target: '_blank', rel: 'noopener', dir: 'ltr' }, c.phone)));
+    items.push(el('li', {}, el('span', { class: 'k' }, T.phoneWa), el('a', { href: `tel:+${digits}`, dir: 'ltr' }, c.phone),
+      el('a', { class: 'wa', href: `https://wa.me/${digits}`, target: '_blank', rel: 'noopener', 'aria-label': `${T.whatsappL} ${c.phone}` }, T.whatsappL)));
   }
   if (c.email) items.push(el('li', {}, el('span', { class: 'k' }, T.emailF), el('a', { href: `mailto:${c.email}`, dir: 'ltr' }, c.email)));
   if (c.facebook) items.push(el('li', {}, el('span', { class: 'k' }, T.facebookL), el('a', { href: `https://www.facebook.com/${encodeURIComponent(c.facebook)}`, target: '_blank', rel: 'noopener', dir: 'ltr' }, c.facebook)));
   const name = AR ? c.companyAr || BRAND_AR : c.company;
-  const foot = el('footer', { class: 'site-foot' }, el('div', { class: 'wrap' }, el('h2', {}, T.contactUs), el('ul', {}, ...items), el('p', { class: 'small muted' }, name)));
+  const foot = el('footer', { class: 'site-foot' }, el('div', { class: 'wrap' }, el('ul', {}, el('li', { class: 'h' }, T.contactUs), ...items), el('p', { class: 'name' }, name)));
   document.body.append(foot);
 }

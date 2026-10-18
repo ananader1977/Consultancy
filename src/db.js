@@ -168,6 +168,11 @@ export function openDb(dbPath) {
   for (const [k, v] of Object.entries(SETTING_DEFAULTS)) ins.run(k, v);
   // rename installs that still use the old placeholder name
   db.prepare("UPDATE settings SET value=? WHERE key='owner_email' AND value=''").run(SETTING_DEFAULTS.owner_email);
+  // one-time: admin notifications go to info@lamaalsafadi.ae (still editable in Admin > Settings afterwards)
+  if (!db.prepare("SELECT 1 FROM settings WHERE key='_m_owner_email_1'").get()) {
+    db.prepare("UPDATE settings SET value=? WHERE key='owner_email'").run(SETTING_DEFAULTS.owner_email);
+    db.prepare("INSERT INTO settings(key,value) VALUES('_m_owner_email_1','1')").run();
+  }
   for (const [key, oldLine, newLine] of [['terms_text', "For any question about your booking, reply to your confirmation email.", "For any question about your booking, call or WhatsApp +971 52 806 6121, email info@lamaalsafadi.ae, or message us on Facebook (lama_alsafadi)."], ['terms_text_ar', "لأي استفسار بخصوص حجزك، يمكنك الرد على رسالة التأكيد المرسلة إلى بريدك الإلكتروني.", "لأي استفسار بخصوص حجزك، اتصل بنا أو راسلنا عبر واتساب على ⁦+971 52 806 6121⁩، أو عبر البريد الإلكتروني info@lamaalsafadi.ae، أو على فيسبوك (lama_alsafadi)."]]) {
     const row = db.prepare('SELECT value FROM settings WHERE key=?').get(key);
     if (row && row.value.includes(oldLine)) db.prepare('UPDATE settings SET value=? WHERE key=?').run(row.value.replace(oldLine, newLine), key);
@@ -187,7 +192,7 @@ export function openDb(dbPath) {
 
 export function getSettings(db) {
   const rows = db.prepare('SELECT key,value FROM settings').all();
-  const raw = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  const raw = Object.fromEntries(rows.filter((r) => !r.key.startsWith('_m_')).map((r) => [r.key, r.value]));
   return {
     ...raw,
     vat_rate: Number(raw.vat_rate),

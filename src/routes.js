@@ -260,6 +260,9 @@ export function registerRoutes(app, ctx) {
     const { _secret, feed_key, ...rest } = s;
     res.json({ settings: rest });
   });
+  app.post('/api/admin/test-email', admin, async (req, res) => {
+    res.json(await ctx.notifier.testEmail());
+  });
   app.get('/api/admin/invoices', admin, (req, res) => {
     const rows = ctx.db.prepare(`SELECT i.id,i.number,i.issued_at,i.customer_name,i.net,i.vat,i.total,i.status,i.credit_note_number,b.reference
       FROM invoices i JOIN bookings b ON b.id=i.booking_id ORDER BY i.id DESC LIMIT 500`).all();

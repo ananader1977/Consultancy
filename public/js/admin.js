@@ -121,7 +121,7 @@ const VIEWS = {
 
   async settings(el) {
     const r = await A('GET', '/settings'); const s = r.settings;
-    const fields = [['company_name', 'Company name'], ['company_name_ar', 'Company name (Arabic)'], ['company_address', 'Address'], ['company_trn', 'Tax Registration Number (TRN)'], ['owner_name', 'Owner name'], ['owner_email', 'Owner email (notifications)'], ['contact_phone', 'Contact phone / WhatsApp (shown to clients)'], ['contact_email', 'Contact email (shown to clients)'], ['facebook', 'Facebook page name'], ['vat_rate', 'VAT %'],
+    const fields = [['company_name', 'Company name'], ['company_name_ar', 'Company name (Arabic)'], ['company_address', 'Address'], ['company_trn', 'Tax Registration Number (TRN)'], ['owner_name', 'Owner name'], ['owner_email', 'Admin notification email (new & modified bookings)'], ['contact_phone', 'Contact phone / WhatsApp (shown to clients)'], ['contact_email', 'Contact email (shown to clients)'], ['facebook', 'Facebook page name'], ['vat_rate', 'VAT %'],
       ['work_start', 'Day starts (hour)'], ['work_end', 'Day ends (hour)'], ['lunch_start', 'Lunch hour (-1 = none)'], ['lock_minutes', 'Slot lock (minutes)'], ['free_reschedule_hours', 'Free reschedule until (hours before)'],
       ['reminder_hours', 'Admin reminder (hours before)'], ['slot_days', 'Booking window (days)'], ['zoom_link', 'Default Zoom link'], ['teams_link', 'Default Teams link'], ['closed_days', 'Closed weekdays (0=Sun, comma separated)']];
     const inputs = Object.fromEntries(fields.map(([k]) => [k, h('input', { value: Array.isArray(s[k]) ? s[k].join(',') : s[k] ?? '' })]));
@@ -137,7 +137,7 @@ const VIEWS = {
       h('p', {}, h('button', { class: 'btn', onclick: () => run(async () => { await A('PUT', '/settings', { ...Object.fromEntries(fields.map(([k]) => [k, inputs[k].value])), prices_include_vat: inc.checked, terms_text: terms.value, terms_text_ar: termsAr.value }); S.cfg = await api('GET', '/api/config'); await A('POST', '/slots/generate', {}); }, 'Settings saved') }, 'Save settings'))),
       h('div', { class: 'card' }, h('h2', {}, 'Integrations'), h('dl', { class: 'kv' },
         h('dt', {}, 'Payments'), h('dd', {}, r.provider === 'stripe' ? 'Stripe (live cards)' : 'Demo (simulated) – set PAYMENT_PROVIDER=stripe'),
-        h('dt', {}, 'Email (SMTP)'), h('dd', {}, r.smtpConfigured ? 'Configured' : 'Not configured – emails are only logged'),
+        h('dt', {}, 'Email (SMTP)'), h('dd', {}, r.smtpConfigured ? 'Configured' : 'Not configured – emails are only logged', ' ', h('button', { class: 'btn alt sm', onclick: () => run(async () => { const t = await A('POST', '/test-email', {}); toast(t.status === 'sent' ? `Test email sent to ${t.to}` : `Not sent to ${t.to}: ${t.error}`, 6000); }) }, 'Send test email')),
         h('dt', {}, 'WhatsApp'), h('dd', {}, r.whatsappConfigured ? 'Configured' : 'Not configured – messages are only logged'),
         h('dt', {}, 'Calendar feed'), h('dd', {}, h('input', { readonly: true, value: r.feedUrl, onfocus: (e) => e.target.select() }), h('div', { class: 'small muted' }, 'Subscribe to this URL in Zoho Calendar, Outlook or Google Calendar (confirmed bookings, with 2h reminder).')))));
   },
