@@ -2,6 +2,7 @@ import { HttpError } from './http.js';
 import { hashPassword, verifyPassword, validatePasswordStrength, safeEqual } from './auth.js';
 import { PLATFORMS } from './service.js';
 import { renderInvoicePdf } from './invoice.js';
+import { buildXlsx } from './xlsx.js';
 import { buildIcs } from './ics.js';
 import { parseDateKey, dubaiMidnight, DAY, fmtRange, fmtStamp, money } from './time.js';
 import { isEmail, clampStr } from './util.js';
@@ -263,6 +264,52 @@ export function registerRoutes(app, ctx) {
   });
   app.post('/api/admin/test-email', admin, async (req, res) => {
     res.json(await ctx.notifier.testEmail());
+  });
+  app.get('/api/admin/export.xlsx', (req, res) => {
+    admin(req);
+    const db = ctx.db;
+    const STATUS = { pending: 'Awaiting payment', confirmed: 'Confirmed', refund_requested: 'Under review', refunded: 'Cancelled (payment returned)', expired: 'Expired', cancelled: 'Cancelled' };
+    const PAY = { unpaid: 'Unpaid', paid: 'Paid', refunded: 'Returned' };
+    const bookings = db.prepare('SELECT * FROM bookings ORDER BY start_ts DESC').all();
+    const refById = new Map(bookings.map((b) => [b.id, b.reference]));
+    const ref = (r) => refById.get(r.booking_id) || '';
+    const sheets = [
+      { name: 'Bookings', rows: bookings, columns: [
+        { header: 'Reference', key: 'reference', width: 16 }, { header: 'Created', key: 'created_at', type: 'date', width: 17 },
+        { header: 'Name', key: 'customer_name', width: 24 }, { header: 'Mobile', key: 'mobile', width: 16 }, { header: 'Email', key: 'email', width: 26 },
+        { header: 'Service', key: 'service_name', width: 26 }, { header: 'Type', value: (r) => (r.service_kind === 'online' ? 'Online' : 'Office'), width: 9 },
+        { header: 'Platform', key: 'platform', width: 16 }, { header: 'Appointment start', key: 'start_ts', type: 'date', width: 17 }, { header: 'Appointment end', key: 'end_ts', type: 'date', width: 17 },
+        { header: 'Status', value: (r) => STATUS[r.status] || r.status, width: 18 }, { header: 'Payment', value: (r) => PAY[r.payment_status] || r.payment_status, width: 10 },
+        { header: 'Net (AED)', key: 'net', type: 'money', width: 11 }, { header: 'VAT (AED)', key: 'vat', type: 'money', width: 11 }, { header: 'Total (AED)', key: 'total', type: 'money', width: 12 },
+        { header: 'Paid at', key: 'paid_at', type: 'date', width: 17 }, { header: 'Payment reference', key: 'payment_ref', width: 22 }, { header: 'Invoice no.', key: 'invoice_number', width: 18 },
+        { header: 'Times changed', key: 'reschedule_count', type: 'number', width: 13 }, { header: 'Meeting link', key: 'meeting_link', width: 30 },
+        { header: 'Terms accepted', key: 'terms_accepted_at', type: 'date', width: 17 }, { header: 'Payment returned at', key: 'refunded_at', type: 'date', width: 17 },
+        { header: 'Return reference', key: 'refund_ref', width: 20 }, { header: 'Admin notes', key: 'admin_notes', width: 40 },
+      ] },
+      { name: 'Invoices', rows: db.prepare('SELECT * FROM invoices ORDER BY issued_at DESC').all(), columns: [
+        { header: 'Invoice no.', key: 'number', width: 18 }, { header: 'Issued', key: 'issued_at', type: 'date', width: 17 }, { header: 'Booking', value: ref, width: 16 },
+        { header: 'Customer', key: 'customer_name', width: 24 }, { header: 'Mobile', key: 'customer_mobile', width: 16 }, { header: 'Email', key: 'customer_email', width: 26 },
+        { header: 'Description', key: 'description', width: 30 }, { header: 'Appointment', key: 'appointment_text', width: 34 },
+        { header: 'Net (AED)', key: 'net', type: 'money', width: 11 }, { header: 'VAT %', key: 'vat_rate', type: 'number', width: 8 }, { header: 'VAT (AED)', key: 'vat', type: 'money', width: 11 },
+        { header: 'Total (AED)', key: 'total', type: 'money', width: 12 }, { header: 'Payment reference', key: 'payment_ref', width: 22 },
+        { header: 'Status', value: (r) => (r.status === 'refunded' ? 'Credit note issued' : 'Issued'), width: 18 },
+        { header: 'Credit note no.', key: 'credit_note_number', width: 18 }, { header: 'Credit note date', key: 'credit_note_at', type: 'date', width: 17 },
+      ] },
+      { name: 'Services', rows: db.prepare('SELECT * FROM services ORDER BY id').all(), columns: [
+        { header: 'Service', key: 'name', width: 30 }, { header: 'Type', value: (r) => (r.kind === 'online' ? 'Online' : 'Office'), width: 10 },
+        { header: 'Price (AED, excl. VAT)', key: 'price', type: 'money', width: 20 }, { header: 'Active', value: (r) => (r.active ? 'Yes' : 'No'), width: 8 },
+      ] },
+      { name: 'Messages', rows: db.prepare('SELECT * FROM outbox ORDER BY id DESC').all(), columns: [
+        { header: 'When', key: 'ts', type: 'date', width: 17 }, { header: 'Channel', key: 'channel', width: 10 }, { header: 'To', key: 'to_addr', width: 26 },
+        { header: 'Subject', key: 'subject', width: 50 }, { header: 'Status', key: 'status', width: 9 }, { header: 'Error', key: 'error', width: 40 }, { header: 'Booking', value: ref, width: 16 },
+      ] },
+      { name: 'Activity log', rows: db.prepare('SELECT * FROM audit ORDER BY id DESC').all(), columns: [
+        { header: 'When', key: 'ts', type: 'date', width: 17 }, { header: 'By', key: 'actor', width: 24 }, { header: 'Action', key: 'action', width: 22 },
+        { header: 'Booking', value: ref, width: 16 }, { header: 'Detail', key: 'detail', width: 50 },
+      ] },
+    ];
+    const day = new Date(ctx.now() + 4 * 3600000).toISOString().slice(0, 10);
+    res.send(buildXlsx(sheets), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 200, { 'Content-Disposition': `attachment; filename="bookings-export-${day}.xlsx"` });
   });
   app.get('/api/admin/invoices', admin, (req, res) => {
     const rows = ctx.db.prepare(`SELECT i.id,i.number,i.issued_at,i.customer_name,i.net,i.vat,i.total,i.status,i.credit_note_number,b.reference

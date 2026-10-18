@@ -269,3 +269,23 @@ describe('admin notifications to info@lamaalsafadi.ae', () => {
     assert.ok(!('_m_owner_email_1' in s.body.settings));
   });
 });
+
+describe('Excel export', () => {
+  let app;
+  before(async () => { app = await startTestApp(); await app.login(); });
+  after(() => app.close());
+  test('admin-only xlsx with all sheets and data', async () => {
+    const b = await app.book(app.slot(2, 10).id, { name: 'Excel Client', email: '' });
+    await app.pay(b);
+    const anon = await fetch(app.base + '/api/admin/export.xlsx');
+    assert.equal(anon.status, 401);
+    const r = await app.call('GET', '/api/admin/export.xlsx', undefined, { admin: true, raw: true });
+    assert.equal(r.status, 200);
+    assert.match(r.headers.get('content-type'), /spreadsheetml/);
+    assert.match(r.headers.get('content-disposition'), /bookings-export-\d{4}-\d{2}-\d{2}\.xlsx/);
+    const buf = Buffer.from(await r.arrayBuffer());
+    assert.equal(buf.subarray(0, 2).toString(), 'PK');
+    const fs = await import('node:fs');
+    fs.writeFileSync(process.env.XLSX_OUT || '/dev/null', buf);
+  });
+});

@@ -54,9 +54,10 @@ const VIEWS = {
   async dashboard(el) {
     const d = await A('GET', '/dashboard');
     const max = Math.max(1, ...d.days.map((x) => x.count));
-    clear(el).append(h('div', { class: 'kpis' },
+    clear(el).append(h('p', { class: 'right' }, h('a', { class: 'btn alt sm', href: '/api/admin/export.xlsx', download: '' }, 'Export to Excel (all data)')),
+      h('div', { class: 'kpis' },
       h('div', { class: 'kpi big' }, h('b', {}, d.confirmed), 'Confirmed bookings'), h('div', { class: 'kpi' }, h('b', {}, d.upcoming), 'Upcoming'), h('div', { class: 'kpi' }, h('b', {}, d.today), 'Today'),
-      h('div', { class: 'kpi' }, h('b', {}, d.pending), 'Awaiting payment'), h('div', { class: 'kpi' }, h('b', {}, d.refundRequests), 'Refund requests'), h('div', { class: 'kpi' }, h('b', {}, money(d.revenue.total)), 'Paid revenue (incl. VAT)')),
+      h('div', { class: 'kpi' }, h('b', {}, d.pending), 'Awaiting payment'), h('div', { class: 'kpi' }, h('b', {}, money(d.revenue.total)), 'Paid revenue (incl. VAT)')),
       h('div', { class: 'card' }, h('h2', {}, 'Confirmed per day, next 14 days'), h('div', { class: 'bars' }, d.days.map((x) => { const b = h('div', { title: `${x.label}: ${x.count}` }); b.style.height = `${(x.count / max) * 100}%`; return b; })),
         h('div', { class: 'small muted' }, `${d.days[0].label} → ${d.days[13].label}`)),
       h('div', { class: 'card' }, h('h2', {}, 'Next appointments'), d.next.length ? h('div', { class: 'tablewrap' }, bookingTable(d.next)) : h('p', { class: 'muted' }, 'None scheduled.')));
