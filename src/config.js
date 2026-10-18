@@ -20,11 +20,11 @@ export function loadConfig(env = process.env) {
       webhookSecret: env.STRIPE_WEBHOOK_SECRET || '',
     },
     smtp: {
-      host: env.SMTP_HOST || '',
+      host: (env.SMTP_HOST || '').trim(),
       port: Number(env.SMTP_PORT) || 587,
       secure: env.SMTP_SECURE === 'true', // true = implicit TLS (port 465)
-      user: env.SMTP_USER || '',
-      pass: env.SMTP_PASS || '',
+      user: (env.SMTP_USER || '').trim(),
+      pass: (env.SMTP_PASS || '').replace(/\s+/g, ''), // Gmail app passwords are shown with spaces
       from: env.SMTP_FROM || '',
       rejectUnauthorized: env.SMTP_REJECT_UNAUTHORIZED !== 'false',
     },

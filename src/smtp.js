@@ -96,8 +96,8 @@ export async function sendMail(opts) {
   const recipients = [].concat(to);
   const socket = await new Promise((resolve, reject) => {
     const s = secure
-      ? tls.connect({ host, port, rejectUnauthorized, servername: host }, () => resolve(s))
-      : net.connect({ host, port }, () => resolve(s));
+      ? tls.connect({ host, port, family: 4, rejectUnauthorized, servername: host }, () => resolve(s))
+      : net.connect({ host, port, family: 4 }, () => resolve(s));
     s.once('error', reject);
   });
   const conn = new Conn(socket, timeoutMs);

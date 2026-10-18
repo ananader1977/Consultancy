@@ -24,6 +24,7 @@ export function createNotifier(ctx) {
       logRow('email', to, subject, text, 'sent', null, bookingId, attach);
       return { status: 'sent' };
     } catch (e) {
+      console.error(`[email] to ${to} failed: ${e.message || e}`);
       logRow('email', to, subject, text, 'failed', String(e.message || e), bookingId, attach);
       return { status: 'failed', error: String(e.message || e) };
     }
