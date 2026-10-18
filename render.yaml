@@ -20,6 +20,8 @@ services:
         value: "true"
       - key: PAYMENT_PROVIDER
         value: mock          # demo payments; switch to stripe + keys when going live
+      - key: ALLOW_MOCK_PAYMENTS
+        value: "true"        # Render sets NODE_ENV=production; this allows demo payments until Stripe is set up
       - key: BASE_URL
         sync: false          # e.g. https://consultancy.onrender.com
       - key: ADMIN_EMAIL
