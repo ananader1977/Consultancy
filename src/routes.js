@@ -36,7 +36,7 @@ export function registerRoutes(app, ctx) {
       id: x.id, name: x.name, kind: x.kind, description: x.description, price: x.price, ...svc.breakdown(x.price, s),
     }));
     res.json({
-      company: s.company_name, address: s.company_address, services, vatRate: s.vat_rate, pricesIncludeVat: s.prices_include_vat,
+      company: s.company_name, companyAr: s.company_name_ar, address: s.company_address, services, vatRate: s.vat_rate, pricesIncludeVat: s.prices_include_vat,
       lockMinutes: s.lock_minutes, freeRescheduleHours: s.free_reschedule_hours, workStart: s.work_start, workEnd: s.work_end,
       lunchStart: s.lunch_start, closedDays: s.closed_days, slotDays: s.slot_days, platforms: PLATFORMS, timezone: 'Asia/Dubai',
       now: ctx.now(), today: dubaiMidnight(ctx.now()), paymentProvider: ctx.payments.name,
@@ -44,7 +44,8 @@ export function registerRoutes(app, ctx) {
   });
   app.get('/api/terms', (req, res) => {
     const s = ctx.settings();
-    res.json({ company: s.company_name, text: s.terms_text });
+    const ar = req.query.lang === 'ar';
+    res.json({ company: ar ? s.company_name_ar || s.company_name : s.company_name, text: ar ? s.terms_text_ar || s.terms_text : s.terms_text });
   });
 
   app.get('/api/slots', (req, res) => {

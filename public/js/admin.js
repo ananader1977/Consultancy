@@ -121,17 +121,20 @@ const VIEWS = {
 
   async settings(el) {
     const r = await A('GET', '/settings'); const s = r.settings;
-    const fields = [['company_name', 'Company name'], ['company_address', 'Address'], ['company_trn', 'Tax Registration Number (TRN)'], ['owner_name', 'Owner name'], ['owner_email', 'Owner email (notifications)'], ['vat_rate', 'VAT %'],
+    const fields = [['company_name', 'Company name'], ['company_name_ar', 'Company name (Arabic)'], ['company_address', 'Address'], ['company_trn', 'Tax Registration Number (TRN)'], ['owner_name', 'Owner name'], ['owner_email', 'Owner email (notifications)'], ['vat_rate', 'VAT %'],
       ['work_start', 'Day starts (hour)'], ['work_end', 'Day ends (hour)'], ['lunch_start', 'Lunch hour (-1 = none)'], ['lock_minutes', 'Slot lock (minutes)'], ['free_reschedule_hours', 'Free reschedule until (hours before)'],
       ['reminder_hours', 'Admin reminder (hours before)'], ['slot_days', 'Booking window (days)'], ['zoom_link', 'Default Zoom link'], ['teams_link', 'Default Teams link'], ['closed_days', 'Closed weekdays (0=Sun, comma separated)']];
     const inputs = Object.fromEntries(fields.map(([k]) => [k, h('input', { value: Array.isArray(s[k]) ? s[k].join(',') : s[k] ?? '' })]));
+    inputs.company_name_ar.dir = 'rtl';
     const inc = h('input', { type: 'checkbox', checked: !!s.prices_include_vat });
     const terms = h('textarea', { rows: 14, value: s.terms_text || '' });
+    const termsAr = h('textarea', { rows: 14, value: s.terms_text_ar || '', dir: 'rtl', lang: 'ar' });
     clear(el).append(h('div', { class: 'card' }, h('h2', {}, 'Settings'), h('div', { class: 'row' }, fields.map(([k, l]) => h('div', {}, h('label', {}, l), inputs[k]))),
       h('label', {}, inc, ' Listed prices already include VAT'),
       h('label', {}, 'Terms & Conditions (shown to clients, who must accept before payment)'), terms,
-      h('p', { class: 'small muted' }, 'Blank line between sections; the first line of each section is its heading. Preview: ', h('a', { href: '/terms.html', target: '_blank', rel: 'noopener' }, '/terms.html')),
-      h('p', {}, h('button', { class: 'btn', onclick: () => run(async () => { await A('PUT', '/settings', { ...Object.fromEntries(fields.map(([k]) => [k, inputs[k].value])), prices_include_vat: inc.checked, terms_text: terms.value }); S.cfg = await api('GET', '/api/config'); await A('POST', '/slots/generate', {}); }, 'Settings saved') }, 'Save settings'))),
+      h('label', {}, 'Terms & Conditions in Arabic (shown on the Arabic pages)'), termsAr,
+      h('p', { class: 'small muted' }, 'Blank line between sections; the first line of each section is its heading. Preview: ', h('a', { href: '/terms.html?lang=en', target: '_blank', rel: 'noopener' }, 'English'), ' · ', h('a', { href: '/terms.html?lang=ar', target: '_blank', rel: 'noopener' }, 'العربية')),
+      h('p', {}, h('button', { class: 'btn', onclick: () => run(async () => { await A('PUT', '/settings', { ...Object.fromEntries(fields.map(([k]) => [k, inputs[k].value])), prices_include_vat: inc.checked, terms_text: terms.value, terms_text_ar: termsAr.value }); S.cfg = await api('GET', '/api/config'); await A('POST', '/slots/generate', {}); }, 'Settings saved') }, 'Save settings'))),
       h('div', { class: 'card' }, h('h2', {}, 'Integrations'), h('dl', { class: 'kv' },
         h('dt', {}, 'Payments'), h('dd', {}, r.provider === 'stripe' ? 'Stripe (live cards)' : 'Demo (simulated) – set PAYMENT_PROVIDER=stripe'),
         h('dt', {}, 'Email (SMTP)'), h('dd', {}, r.smtpConfigured ? 'Configured' : 'Not configured – emails are only logged'),

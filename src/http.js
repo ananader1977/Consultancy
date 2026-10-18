@@ -2,6 +2,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import { translateError } from './i18n.js';
 
 export class HttpError extends Error {
   constructor(status, message, extra = {}) {
@@ -199,7 +200,7 @@ export function createApp({ publicDir, bodyLimit = 1024 * 1024, onError } = {}) 
       if (status === 500) (onError || console.error)(err);
       const wantsJson = req.path.startsWith('/api/') || (req.headers.accept || '').includes('json');
       if (wantsJson) {
-        res.json({ error: status === 500 ? 'Internal server error' : err.message, ...(err.extra || {}) }, status);
+        res.json({ error: translateError(status === 500 ? 'Internal server error' : err.message, String(req.headers['x-lang'] || '').toLowerCase()), ...(err.extra || {}) }, status);
       } else {
         res.send(status === 404 ? 'Page not found' : err.message, 'text/plain; charset=utf-8', status);
       }

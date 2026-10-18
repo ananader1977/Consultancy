@@ -132,3 +132,65 @@ describe('admin operations', () => {
     assert.match(await res.text(), /BEGIN:VCALENDAR[\s\S]*BEGIN:VEVENT/);
   });
 });
+
+describe('client emails: manage link and booking changes', () => {
+  let app;
+  before(async () => { app = await startTestApp(); await app.login(); });
+  after(() => app.close());
+  const A = (m, p, b) => app.call(m, p, b, { admin: true });
+  const mails = (id, to) => app.ctx.db.prepare("SELECT * FROM outbox WHERE channel='email' AND booking_id=? AND to_addr=? ORDER BY id").all(id, to);
+
+  test('the confirmation email carries the manage-booking link', async () => {
+    const b = await app.book(app.slot(2, 10).id, { email: 'save@example.com' });
+    await app.pay(b);
+    const id = app.dbBooking(b.body.reference).id;
+    const conf = mails(id, 'save@example.com').find((m) => /Booking confirmed/.test(m.subject));
+    assert.ok(conf);
+    assert.ok(conf.body.includes(`/manage.html?ref=${b.body.reference}&t=${b.body.token}`), 'link with the private token');
+    assert.match(conf.body, /Save this link/);
+  });
+
+  test('admin changes to client-visible details email the client the updated booking', async () => {
+    const b = await app.book(app.slot(2, 11).id, { email: 'change@example.com' });
+    await app.pay(b);
+    const id = app.dbBooking(b.body.reference).id;
+    await A('PATCH', `/api/admin/bookings/${id}`, { admin_notes: 'internal only' });
+    await app.ctx.flush();
+    assert.equal(mails(id, 'change@example.com').filter((m) => /Booking updated/.test(m.subject)).length, 0, 'internal notes do not email the client');
+    await A('PATCH', `/api/admin/bookings/${id}`, { meeting_link: 'https://zoom.us/j/123', mobile: '+971509999999' });
+    await app.ctx.flush();
+    const upd = mails(id, 'change@example.com').filter((m) => /Booking updated/.test(m.subject));
+    assert.equal(upd.length, 1);
+    assert.match(upd[0].body, /manage\.html\?ref=/);
+    assert.match(upd[0].attachment, /\.ics/);
+  });
+
+  test('admin reschedule emails the client the new time with the manage link', async () => {
+    const b = await app.book(app.slot(3, 10).id, { email: 'move@example.com' });
+    await app.pay(b);
+    const id = app.dbBooking(b.body.reference).id;
+    assert.equal((await A('POST', `/api/admin/bookings/${id}/reschedule`, { slotId: app.slot(3, 14).id })).status, 200);
+    await app.ctx.flush();
+    const m = mails(id, 'move@example.com').find((x) => /rescheduled/.test(x.subject));
+    assert.ok(m);
+    assert.match(m.body, /14:00/);
+    assert.match(m.body, /manage\.html/);
+  });
+
+  test('cancelling an unpaid booking tells the client', async () => {
+    const b = await app.book(app.slot(4, 10).id, { email: 'unpaid@example.com' });
+    const id = app.dbBooking(b.body.reference).id;
+    assert.equal((await A('POST', `/api/admin/bookings/${id}/cancel`, {})).status, 200);
+    await app.ctx.flush();
+    assert.ok(mails(id, 'unpaid@example.com').some((m) => /Booking cancelled/.test(m.subject)));
+  });
+
+  test('Arabic error messages when the page is in Arabic', async () => {
+    const r = await app.call('POST', '/api/bookings', app.customer({ slotId: app.slot(4, 11).id, acceptTerms: false }), { headers: { 'X-Lang': 'ar' } });
+    assert.equal(r.status, 400);
+    assert.match(r.body.error, /الشروط والأحكام/);
+    const t = await app.call('GET', '/api/terms?lang=ar');
+    assert.match(t.body.text, /الإلغاء والاسترداد/);
+    assert.match(t.body.company, /لمى الصفدي/);
+  });
+});

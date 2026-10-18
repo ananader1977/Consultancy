@@ -62,3 +62,10 @@ dialog{border:0;border-radius:14px;padding:0;max-width:min(560px,94vw);width:100
 @media print{.top,.btn,.tabs{display:none}}
 .terms{display:flex;gap:10px;align-items:flex-start;font-weight:400;margin:16px 0 4px;line-height:1.4}.terms input{width:22px;height:22px;min-height:0;flex:none;margin-top:1px;accent-color:var(--brand)}
 @media(max-width:480px){.top .brand{font-size:.92rem}.top nav a{font-size:.9rem}}
+.top nav{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+.lang{font:inherit;font-weight:700;font-size:.9rem;padding:6px 12px;border-radius:99px;border:1px solid var(--brand);background:#fff;color:var(--brand);cursor:pointer;min-height:36px}
+.lang:hover{background:var(--tint)}
+.save-link input{font-size:.9rem;color:var(--muted)}
+[dir=rtl] body{font-family:system-ui,-apple-system,"Segoe UI",Tahoma,"Noto Naskh Arabic",sans-serif}
+[dir=rtl] .kv dd{text-align:right}
+[dir=rtl] input[dir=ltr]{text-align:right}

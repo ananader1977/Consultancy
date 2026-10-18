@@ -1,7 +1,9 @@
 import { api, h, $ } from '/js/common.js';
+import { T, AR, setupPage } from '/js/i18n.js';
+setupPage();
 const app = $('#app');
 try {
-  const t = await api('GET', '/api/terms');
+  const t = await api('GET', `/api/terms?lang=${AR ? 'ar' : 'en'}`);
   $('#brand').textContent = t.company;
   const blocks = String(t.text || '').split(/\n\s*\n/);
   const out = [];
@@ -11,6 +13,6 @@ try {
     const isHead = lines.length > 1 && lines[0].length < 80;
     out.push(h('section', { class: 'card' }, isHead ? [h('h2', {}, lines[0]), ...lines.slice(1).map((l) => h('p', {}, l))] : lines.map((l) => h('p', {}, l))));
   });
-  out.push(h('p', {}, h('a', { class: 'btn alt', href: '/' }, '‹ Back to booking')));
+  out.push(h('p', {}, h('a', { class: 'btn alt', href: '/' }, T.backToBooking)));
   app.replaceChildren(...out);
 } catch (e) { app.replaceChildren(h('div', { class: 'alert bad' }, e.message)); }

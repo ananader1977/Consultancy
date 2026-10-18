@@ -79,9 +79,14 @@ export function createNotifier(ctx) {
     contentType: 'application/pdf',
     content: renderInvoicePdf({ ...inv, reference: inv.reference }, { creditNote }),
   });
-  const sendBoth = async (b, s, { subject, headline, intro, extraClient = '', attachments = [], ownerNote, waKind }) => {
-    const clientHtml = layout(s, headline, `<p>Dear ${escHtml(b.customer_name)},</p><p>${intro}</p>${details(b, s)}${extraClient}`);
-    await email({ to: b.email, subject, text: `Dear ${b.customer_name},\n\n${intro.replace(/<[^>]+>/g, '')}\n\n${plain(b)}\n\nManage your booking: ${manageUrl(b)}`, html: clientHtml, attachments, bookingId: b.id });
+  const manageBlock = (b) => `<div style="margin:18px 0 4px;padding:14px 16px;background:#f1edf8;border-radius:10px">
+<div style="font-weight:bold;color:#3b2f63;font-size:15px">Save this link to manage your booking</div>
+<div style="font-size:14px;margin:6px 0 12px">View, reschedule or cancel your booking at any time. Booking reference: <b>${escHtml(b.reference)}</b></div>
+<a href="${escHtml(manageUrl(b))}" style="display:inline-block;background:#5b4a8a;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:bold">Manage my booking</a>
+<div style="font-size:12px;color:#6b7280;margin-top:10px;word-break:break-all">${escHtml(manageUrl(b))}</div></div>`;
+  const sendBoth = async (b, s, { subject, headline, intro, extraClient = '', attachments = [], ownerNote, waKind, manage = true }) => {
+    const clientHtml = layout(s, headline, `<p>Dear ${escHtml(b.customer_name)},</p><p>${intro}</p>${details(b, s)}${extraClient}${manage ? manageBlock(b) : ''}`);
+    await email({ to: b.email, subject, text: `Dear ${b.customer_name},\n\n${intro.replace(/<[^>]+>/g, '')}\n\n${plain(b)}${manage ? `\n\nSave this link to view, reschedule or cancel your booking:\n${manageUrl(b)}` : ''}`, html: clientHtml, attachments, bookingId: b.id });
     const owner = ownerTo(s);
     if (owner) {
       const ownerHtml = layout(s, `[Admin] ${headline}`, `<p>${ownerNote}</p>${details(b, s)}<p style="font-size:14px">Customer: <b>${escHtml(b.customer_name)}</b><br>Mobile: ${escHtml(b.mobile)}<br>Email: ${escHtml(b.email)}</p>`);
@@ -99,7 +104,7 @@ export function createNotifier(ctx) {
         subject: `Booking confirmed - ${b.reference}`,
         headline: 'Your appointment is confirmed',
         intro: 'Thank you - your payment was received and your appointment is confirmed. Your tax invoice and a calendar entry are attached.',
-        extraClient: `<p style="font-size:14px">Need to change it? Rescheduling is free up to ${s.free_reschedule_hours} hours before the appointment: <a href="${escHtml(manageUrl(b))}">manage my booking</a>.</p>`,
+        extraClient: `<p style="font-size:14px">Rescheduling is free up to ${s.free_reschedule_hours} hours before the appointment.</p>`,
         attachments: [invoiceAttachment(inv), icsAttachment(b, s, 'PUBLISH')],
         ownerNote: `New paid booking received (AED ${money(b.total)}).`,
         waKind: 'confirmation',
@@ -113,6 +118,7 @@ export function createNotifier(ctx) {
         intro: `Your appointment has been moved to <b>${escHtml(fmtRange(b.start_ts, b.end_ts))}</b>. An updated calendar entry is attached.`,
         attachments: [icsAttachment(b, s, 'PUBLISH')],
         ownerNote: `Booking ${escHtml(b.reference)} was rescheduled by ${escHtml(by)}.`,
+        extraClient: '<p style="font-size:14px">The details above are your updated booking.</p>',
         waKind: 'update',
       });
     },
@@ -123,6 +129,29 @@ export function createNotifier(ctx) {
         headline: 'We received your refund request',
         intro: 'We received your cancellation and refund request. We will review it and update you by email. Your slot stays reserved until then.',
         ownerNote: `Refund requested for ${escHtml(b.reference)}. Reason: ${escHtml(b.refund_reason || '-')}. Approve it in the admin console before the appointment time.`,
+      });
+    },
+    async bookingUpdated(b, changes) {
+      const s = ctx.settings();
+      const list = changes.map((c) => `<li>${escHtml(c)}</li>`).join('');
+      await sendBoth(b, s, {
+        subject: `Booking updated - ${b.reference}`,
+        headline: 'Your booking was updated',
+        intro: 'We updated your booking. Your latest booking details are below and an updated calendar entry is attached.',
+        extraClient: `<p style="font-size:14px;margin-bottom:0">What changed:</p><ul style="font-size:14px;margin-top:4px">${list}</ul>`,
+        attachments: [icsAttachment(b, s, 'PUBLISH')],
+        ownerNote: `Booking ${escHtml(b.reference)} was updated (${escHtml(changes.join(', '))}). The client was emailed the new details.`,
+        waKind: 'update',
+      });
+    },
+    async bookingCancelled(b) {
+      const s = ctx.settings();
+      await sendBoth(b, s, {
+        subject: `Booking cancelled - ${b.reference}`,
+        headline: 'Your booking was cancelled',
+        intro: 'Your unpaid booking request was cancelled and the time is no longer reserved. No payment was taken. You are welcome to book again at any time.',
+        ownerNote: `Unpaid booking ${escHtml(b.reference)} was cancelled.`,
+        manage: false,
       });
     },
     async refundApproved(b, inv) {

@@ -414,7 +414,10 @@ export function createService(ctx) {
     }
     audit(actor, 'booking.updated', id, keys.join(','));
     const nb = bookingById(id);
-    if (set.meeting_link && nb.status === 'confirmed' && set.meeting_link !== b.meeting_link) ctx.background(ctx.notifier.meetingLink(nb));
+    const labels = { customer_name: 'Name', email: 'Email', mobile: 'Mobile', platform: 'Meeting platform', meeting_link: 'Meeting link' };
+    const changes = Object.keys(labels).filter((k) => k in set && set[k] !== b[k])
+      .map((k) => (k === 'meeting_link' ? (set[k] ? `Meeting link: ${set[k]}` : 'Meeting link removed') : `${labels[k]}: ${set[k]}`));
+    if (changes.length && ['confirmed', 'refund_requested'].includes(nb.status)) ctx.background(ctx.notifier.bookingUpdated(nb, changes));
     return nb;
   }
 
@@ -424,7 +427,9 @@ export function createService(ctx) {
     q("UPDATE bookings SET status='cancelled', updated_at=? WHERE id=?").run(ctx.now(), id);
     if (b.payment_session_id) ctx.background(ctx.payments.expireSession(b.payment_session_id).catch(() => {}));
     audit(actor, 'booking.cancelled', id);
-    return bookingById(id);
+    const cb = bookingById(id);
+    if (actor !== 'system') ctx.background(ctx.notifier.bookingCancelled(cb));
+    return cb;
   }
 
   async function markPaidManually(id, actor = 'admin') {
@@ -548,6 +553,8 @@ export function createService(ctx) {
       reminder_hours: (v) => intIn(v, 1, 72, 'Reminder hours'),
       zoom_link: (v) => url(v),
       teams_link: (v) => url(v),
+      company_name_ar: (v) => str(v, 150),
+      terms_text_ar: (v) => { v = String(v ?? '').replace(/\r\n/g, '\n').trim().slice(0, 20000); if (v.length < 20) throw new HttpError(400, 'Arabic Terms & Conditions text is too short.'); return v; },
       terms_text: (v) => { v = String(v ?? '').replace(/\r\n/g, '\n').trim().slice(0, 20000); if (v.length < 20) throw new HttpError(400, 'Terms & Conditions text is too short.'); return v; },
       closed_days: (v) => {
         const arr = (Array.isArray(v) ? v : String(v).split(',')).map((x) => String(x).trim()).filter((x) => x !== '');
