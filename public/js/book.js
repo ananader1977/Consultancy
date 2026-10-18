@@ -61,9 +61,7 @@ function render() {
 
   const form = h('form', { id: 'f', novalidate: true, onsubmit: submit },
     h('label', { for: 'name' }, T.fullName), h('input', { id: 'name', name: 'name', autocomplete: 'name', required: true, maxlength: 100 }),
-    h('div', { class: 'row' },
-      h('div', {}, h('label', { for: 'mobile' }, T.mobile), h('input', { id: 'mobile', name: 'mobile', type: 'tel', inputmode: 'tel', autocomplete: 'tel', placeholder: '+971 50 123 4567', required: true, dir: 'ltr' })),
-      h('div', {}, h('label', { for: 'email' }, T.email), h('input', { id: 'email', name: 'email', type: 'email', autocomplete: 'email', required: true, dir: 'ltr' }))),
+    h('label', { for: 'mobile' }, T.mobile), h('input', { id: 'mobile', name: 'mobile', type: 'tel', inputmode: 'tel', autocomplete: 'tel', placeholder: '+971 50 123 4567', required: true, dir: 'ltr' }),
     svc?.kind === 'online' ? [h('label', { for: 'platform' }, T.platform), h('select', { id: 'platform', name: 'platform' }, cfg.platforms.map((p) => h('option', { value: p }, p)))] : null,
     h('label', { class: 'terms' }, h('input', { type: 'checkbox', id: 'terms', name: 'acceptTerms', required: true }),
       h('span', {}, T.termsA, h('a', { href: '/terms.html', target: '_blank', rel: 'noopener' }, T.termsLink), T.termsB)),
@@ -93,7 +91,7 @@ async function submit(ev) {
   const v = Object.fromEntries(new FormData(f));
   const terms = $('#terms').checked;
   delete v.acceptTerms;
-  const bad = !v.name?.trim() ? T.errName : !v.mobile?.trim() ? T.errMobile : !/^\S+@\S+\.\S+$/.test(v.email || '') ? T.errEmail : !terms ? T.errTerms : null;
+  const bad = !v.name?.trim() ? T.errName : !v.mobile?.trim() ? T.errMobile : !terms ? T.errTerms : null;
   if (bad) { err.textContent = bad; err.classList.remove('hide'); return; }
   err.classList.add('hide'); btn.disabled = true; btn.textContent = T.reserving;
   try {

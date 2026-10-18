@@ -47,7 +47,7 @@ export function renderInvoicePdf(inv, { creditNote = false, contact = null } = {
   const contactLines = contact ? [contact.contact_phone && `Tel: ${contact.contact_phone}`, contact.contact_email && `Email: ${contact.contact_email}`].filter(Boolean) : [];
   const nameRows = pdf.wrap(inv.supplier_name, 240, 10, true);
   const from = [...nameRows, ...(inv.supplier_address ? pdf.wrap(inv.supplier_address, 240, 10) : []), ...contactLines];
-  const to = [inv.customer_name, inv.customer_email, inv.customer_mobile];
+  const to = [inv.customer_name, inv.customer_email, inv.customer_mobile].filter(Boolean);
   from.forEach((t, i) => pdf.text(t, L, y + i * 13, { size: 10, bold: i < nameRows.length, fill: INK }));
   to.forEach((t, i) => pdf.text(t, 310, y + i * 13, { size: 10, bold: i === 0, fill: INK }));
   y += Math.max(from.length, to.length) * 13 + 16;

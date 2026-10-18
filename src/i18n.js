@@ -16,6 +16,8 @@ const AR = {
   'The slot is no longer available for this booking.': 'لم يعد هذا الموعد متاحاً لهذا الحجز.',
   'Booking not found. Please check your link.': 'لم يتم العثور على الحجز. يرجى التحقق من الرابط.',
   'Booking not found. Check the reference and email.': 'لم يتم العثور على الحجز. تحقّق من رقم الحجز والبريد الإلكتروني.',
+  'Booking not found. Check the reference and mobile number.': 'لم يتم العثور على الحجز. تحقّق من رقم الحجز ورقم الجوال.',
+  'Please enter your name.': 'يرجى إدخال اسمك.',
   'Only confirmed, paid bookings can be rescheduled.': 'يمكن إعادة جدولة الحجوزات المؤكدة والمدفوعة فقط.',
   'Only confirmed, paid bookings can be refunded.': 'يمكن استرداد مبالغ الحجوزات المؤكدة والمدفوعة فقط.',
   'Refunds can only be requested before the appointment time.': 'لا يمكن طلب الاسترداد إلا قبل موعد الجلسة.',

@@ -54,9 +54,9 @@ describe('creating bookings', () => {
   before(async () => { app = await startTestApp(); });
   after(() => app.close());
 
-  test('name, mobile and email are mandatory and validated', async () => {
+  test('name and mobile are mandatory; email is optional but validated when given', async () => {
     const s = app.slot(1, 10);
-    for (const bad of [{ name: '' }, { name: 'A' }, { mobile: '' }, { mobile: 'abc' }, { mobile: '123' }, { email: '' }, { email: 'not-an-email' }]) {
+    for (const bad of [{ name: '' }, { name: 'A' }, { mobile: '' }, { mobile: 'abc' }, { mobile: '123' }, { email: 'not-an-email' }]) {
       const r = await app.book(s.id, bad);
       assert.equal(r.status, 400, JSON.stringify(bad));
     }
@@ -359,5 +359,50 @@ describe('terms and conditions', () => {
     assert.equal(r.status, 201);
     assert.equal(r.body.booking.terms_accepted_at, null);
     assert.equal(r.body.booking.status, 'confirmed');
+  });
+});
+
+describe('bookings without an email address', () => {
+  let app;
+  before(async () => { app = await startTestApp(); await app.login(); });
+  after(() => app.close());
+
+  test('a client can book and pay with only name and mobile; no client email is attempted', async () => {
+    const b = await app.book(app.slot(1, 10).id, { email: undefined, name: 'No Email', mobile: '050 777 8888' });
+    assert.equal(b.status, 201);
+    await app.pay(b);
+    const row = app.dbBooking(b.body.reference);
+    assert.equal(row.email, '');
+    assert.equal(row.status, 'confirmed');
+    const st = (await app.status(b)).body;
+    assert.equal(st.hasEmail, false);
+    const toClient = app.ctx.db.prepare("SELECT COUNT(*) n FROM outbox WHERE booking_id=? AND channel='email' AND to_addr=''").get(row.id).n;
+    assert.equal(toClient, 0);
+    assert.ok(app.ctx.db.prepare("SELECT COUNT(*) n FROM outbox WHERE booking_id=? AND channel='whatsapp'").get(row.id).n >= 1, 'WhatsApp still goes out');
+  });
+
+  test('clients find their booking with reference + mobile number (any format)', async () => {
+    const b = await app.book(app.slot(1, 11).id, { email: undefined, mobile: '+971 50 123 9999' });
+    await app.pay(b);
+    for (const m of ['0501239999', '+971501239999', '00971 50 123 9999']) {
+      const r = await app.call('POST', '/api/manage/lookup', { reference: b.body.reference.toLowerCase(), mobile: m });
+      assert.equal(r.status, 200, m);
+      assert.equal(r.body.token, b.body.token);
+    }
+    assert.equal((await app.call('POST', '/api/manage/lookup', { reference: b.body.reference, mobile: '0509999999' })).status, 404);
+    assert.equal((await app.call('POST', '/api/manage/lookup', { reference: b.body.reference })).status, 404);
+  });
+
+  test('the admin can add (or remove) an email later, and the client is then emailed', async () => {
+    const b = await app.book(app.slot(2, 10).id, { email: undefined });
+    await app.pay(b);
+    const id = app.dbBooking(b.body.reference).id;
+    const r = await app.call('PATCH', `/api/admin/bookings/${id}`, { email: 'added@example.com' }, { admin: true });
+    assert.equal(r.status, 200);
+    await app.ctx.flush();
+    assert.ok(app.ctx.db.prepare("SELECT COUNT(*) n FROM outbox WHERE booking_id=? AND to_addr='added@example.com'").get(id).n >= 1);
+    assert.equal((await app.call('PATCH', `/api/admin/bookings/${id}`, { email: '' }, { admin: true })).status, 200);
+    const c = await app.call('POST', '/api/admin/bookings', { name: 'Walk In', mobile: '+971501112233', serviceId: 1, platform: 'Zoom', slotId: app.slot(2, 11).id, markPaid: true }, { admin: true });
+    assert.equal(c.status, 201, 'admin can create a booking without email');
   });
 });

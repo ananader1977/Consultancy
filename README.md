@@ -4,7 +4,7 @@ Mobile-responsive appointment booking system for a consultancy (Dubai, AED, 5% V
 Zero npm dependencies: Node.js ≥ 22.13 only (built-in `node:sqlite`).
 
 ## Features
-- **Public booking portal** (no customer accounts): name, mobile, email (all required), service (Online via Zoom/Teams, Offline in office).
+- **Public booking portal** (no customer accounts): name and mobile (required; email is not asked publicly and can be added by the admin), service (Online via Zoom/Teams, Offline in office).
 - **Calendar**: Mon–Sat, 10:00–18:00 Dubai time, 1-hour slots, lunch 13:00–14:00 closed, no Sunday. Customers only see free slots.
 - **Prices** Online AED 500 / Offline AED 1000 (editable by admin; VAT 5% added or included – setting).
 - **Unique booking reference** (`CO-YYMM-00001`), then redirect to **card payment** (Stripe Checkout; demo checkout in mock mode).
@@ -22,7 +22,7 @@ Zero npm dependencies: Node.js ≥ 22.13 only (built-in `node:sqlite`).
 npm start                 # http://localhost:3000, demo payments
 # first start prints the admin email/password once (or set ADMIN_EMAIL / ADMIN_PASSWORD)
 npm run seed-demo         # optional demo data
-npm test                  # 47 tests
+npm test                  # 51 tests
 ```
 Customer site: `/` · Manage booking: `/manage.html` · Admin: `/admin/`
 

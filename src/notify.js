@@ -15,6 +15,7 @@ export function createNotifier(ctx) {
     );
 
   async function email({ to, subject, text, html, attachments = [], bookingId }) {
+    if (!to) return null; // client without an email address: WhatsApp / pages only
     const attach = attachments.map((a) => a.filename).join(', ');
     if (!config.smtp.host) return logRow('email', to, subject, text, 'logged', 'SMTP not configured', bookingId, attach);
     try {
@@ -93,8 +94,8 @@ export function createNotifier(ctx) {
     await email({ to: b.email, subject, text: `Dear ${b.customer_name},\n\n${intro.replace(/<[^>]+>/g, '')}\n\n${plain(b)}${manage ? `\n\nSave this link to view, reschedule or cancel your booking:\n${manageUrl(b)}` : ''}`, html: clientHtml, attachments, bookingId: b.id });
     const owner = ownerTo(s);
     if (owner) {
-      const ownerHtml = layout(s, `[Admin] ${headline}`, `<p>${ownerNote}</p>${details(b, s)}<p style="font-size:14px">Customer: <b>${escHtml(b.customer_name)}</b><br>Mobile: ${escHtml(b.mobile)}<br>Email: ${escHtml(b.email)}</p>`);
-      await email({ to: owner, subject: `[Admin] ${subject}`, text: `${ownerNote.replace(/<[^>]+>/g, '')}\n\n${plain(b)}\nCustomer: ${b.customer_name} | ${b.mobile} | ${b.email}`, html: ownerHtml, bookingId: b.id });
+      const ownerHtml = layout(s, `[Admin] ${headline}`, `<p>${ownerNote}</p>${details(b, s)}<p style="font-size:14px">Customer: <b>${escHtml(b.customer_name)}</b><br>Mobile: ${escHtml(b.mobile)}<br>Email: ${escHtml(b.email || '-')}</p>`);
+      await email({ to: owner, subject: `[Admin] ${subject}`, text: `${ownerNote.replace(/<[^>]+>/g, '')}\n\n${plain(b)}\nCustomer: ${b.customer_name} | ${b.mobile} | ${b.email || 'no email'}`, html: ownerHtml, bookingId: b.id });
     }
     if (waKind) await whatsapp({ booking: b, kind: waKind });
   };
@@ -201,8 +202,8 @@ export function createNotifier(ctx) {
       const s = ctx.settings();
       const owner = ownerTo(s);
       if (!owner) return;
-      const inner = `<p><b>Reminder:</b> appointment starts in about ${s.reminder_hours} hours (${escHtml(fmtStamp(b.start_ts))}).</p>${details(b, s)}<p style="font-size:14px">Customer: <b>${escHtml(b.customer_name)}</b><br>Mobile: ${escHtml(b.mobile)}<br>Email: ${escHtml(b.email)}</p>`;
-      await email({ to: owner, subject: `Reminder (${s.reminder_hours}h): ${b.customer_name} - ${fmtStamp(b.start_ts)}`, text: `Reminder: appointment in ~${s.reminder_hours}h\n\n${plain(b)}\nCustomer: ${b.customer_name} | ${b.mobile} | ${b.email}`, html: layout(s, 'Appointment reminder', inner), bookingId: b.id });
+      const inner = `<p><b>Reminder:</b> appointment starts in about ${s.reminder_hours} hours (${escHtml(fmtStamp(b.start_ts))}).</p>${details(b, s)}<p style="font-size:14px">Customer: <b>${escHtml(b.customer_name)}</b><br>Mobile: ${escHtml(b.mobile)}<br>Email: ${escHtml(b.email || '-')}</p>`;
+      await email({ to: owner, subject: `Reminder (${s.reminder_hours}h): ${b.customer_name} - ${fmtStamp(b.start_ts)}`, text: `Reminder: appointment in ~${s.reminder_hours}h\n\n${plain(b)}\nCustomer: ${b.customer_name} | ${b.mobile} | ${b.email || 'no email'}`, html: layout(s, 'Appointment reminder', inner), bookingId: b.id });
     },
   };
 }

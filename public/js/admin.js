@@ -182,7 +182,7 @@ async function detail(id) {
       r.invoice ? [h('dt', {}, 'Invoice'), h('dd', {}, r.invoice.number, ' ', h('a', { href: `/api/admin/invoices/${r.invoice.id}/pdf`, target: '_blank', rel: 'noopener' }, 'PDF'))] : null,
       h('dt', {}, 'Terms accepted'), h('dd', {}, b.terms_accepted_at ? fmtStamp(b.terms_accepted_at) : 'n/a (created by admin)'),
       b.refund_reason ? [h('dt', {}, 'Refund reason'), h('dd', {}, b.refund_reason)] : null),
-    h('label', {}, 'Name'), name, h('div', { class: 'row' }, h('div', {}, h('label', {}, 'Mobile'), mobile), h('div', {}, h('label', {}, 'Email'), email)),
+    h('label', {}, 'Name'), name, h('div', { class: 'row' }, h('div', {}, h('label', {}, 'Mobile'), mobile), h('div', {}, h('label', {}, 'Email (optional)'), email)),
     h('label', {}, 'Meeting link (Zoom/Teams)'), link, h('label', {}, 'Internal notes'), notes, h('p', { class: 'row' }, btns),
     h('details', {}, h('summary', {}, 'History'), h('ul', { class: 'small' }, r.audit.map((a) => h('li', {}, `${fmtStamp(a.ts)} · ${a.actor} · ${a.action}${a.detail ? ' · ' + a.detail : ''}`)))));
 }
@@ -209,7 +209,7 @@ async function newBooking(slot) {
     h('label', {}, 'Slot'), h('select', { name: 'slotId' }, cal.map((s) => h('option', { value: s.id }, `${dow(s.start)} ${dayLabel(s.start)} ${fmtTime(s.start)}`))),
     h('label', {}, 'Service'), h('select', { name: 'serviceId' }, S.cfg.services.map((x) => h('option', { value: x.id }, `${x.name} – ${money(x.total)}`))),
     h('label', {}, 'Platform (online only)'), h('select', { name: 'platform' }, S.cfg.platforms.map((p) => h('option', {}, p))),
-    h('label', {}, 'Name'), h('input', { name: 'name', required: true }), h('label', {}, 'Mobile'), h('input', { name: 'mobile', required: true }), h('label', {}, 'Email'), h('input', { name: 'email', type: 'email', required: true }),
+    h('label', {}, 'Name'), h('input', { name: 'name', required: true }), h('label', {}, 'Mobile'), h('input', { name: 'mobile', required: true }), h('label', {}, 'Email (optional)'), h('input', { name: 'email', type: 'email' }),
     h('label', {}, h('input', { name: 'markPaid', type: 'checkbox' }), ' Already paid (cash / bank transfer) – confirm and issue invoice'), h('p', {}, h('button', { class: 'btn' }, 'Create booking')));
   modal(h('h2', {}, 'New booking'), f);
 }

@@ -69,7 +69,7 @@ function stripeProvider(ctx) {
         'payment_method_types[0]': 'card',
         success_url: `${base}/status.html?ref=${encodeURIComponent(booking.reference)}&t=${booking.manage_token}`,
         cancel_url: `${base}/status.html?ref=${encodeURIComponent(booking.reference)}&t=${booking.manage_token}&cancelled=1`,
-        customer_email: booking.email,
+        ...(booking.email ? { customer_email: booking.email } : {}),
         client_reference_id: String(booking.id),
         'metadata[booking_id]': String(booking.id),
         'metadata[reference]': booking.reference,

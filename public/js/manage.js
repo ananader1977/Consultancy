@@ -12,7 +12,7 @@ function lookupForm() {
       try { const r = await api('POST', '/api/manage/lookup', v); ref = r.reference; tok = r.token; history.replaceState(null, '', `?ref=${encodeURIComponent(ref)}&t=${tok}`); show(); }
       catch (x) { err.textContent = x.message; err.classList.remove('hide'); } } },
       h('label', {}, T.bookingRef), h('input', { name: 'reference', required: true, placeholder: 'CO-2610-00001', dir: 'ltr' }),
-      h('label', {}, T.emailL), h('input', { name: 'email', type: 'email', required: true, dir: 'ltr' }), err, h('p', {}, h('button', { class: 'btn block' }, T.findBooking)))));
+      h('label', {}, T.mobileL), h('input', { name: 'mobile', type: 'tel', inputmode: 'tel', required: true, placeholder: '+971 50 123 4567', dir: 'ltr' }), err, h('p', {}, h('button', { class: 'btn block' }, T.findBooking)))));
 }
 
 async function show() {

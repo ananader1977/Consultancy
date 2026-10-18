@@ -73,8 +73,8 @@ export function registerRoutes(app, ctx) {
   // ======================== public: manage booking ========================
   app.post('/api/manage/lookup', async (req, res) => {
     limit(`lookup:${ip(req)}`, 10, 10 * 60 * 1000);
-    const { reference, email } = await req.json();
-    const b = svc.lookup(reference, email);
+    const { reference, mobile, email } = await req.json();
+    const b = svc.lookup(reference, { mobile, email });
     res.json({ reference: b.reference, token: b.manage_token });
   });
   app.get('/api/manage/:ref', async (req, res) => {
@@ -146,7 +146,7 @@ export function registerRoutes(app, ctx) {
     const events = svc.feedEvents().map((b) => ({
       uid: `${b.reference}@consultancy-operation`, start: b.start_ts, end: b.end_ts,
       summary: `${b.payment_status === 'paid' ? '[PAID] ' : '[UNPAID] '}${b.customer_name} - ${b.service_name}`,
-      description: `Ref ${b.reference}\nCustomer: ${b.customer_name}\nMobile: ${b.mobile}\nEmail: ${b.email}\nTotal: AED ${money(b.total)}${b.meeting_link ? '\nLink: ' + b.meeting_link : ''}`,
+      description: `Ref ${b.reference}\nCustomer: ${b.customer_name}\nMobile: ${b.mobile}\nEmail: ${b.email || '-'}\nTotal: AED ${money(b.total)}${b.meeting_link ? '\nLink: ' + b.meeting_link : ''}`,
       location: b.service_kind === 'online' ? `${b.platform || 'Online'} ${b.meeting_link || ''}`.trim() : s.company_address || 'Office',
       color: b.payment_status === 'paid' ? 'green' : 'orange',
       status: b.status === 'pending' ? 'TENTATIVE' : 'CONFIRMED',

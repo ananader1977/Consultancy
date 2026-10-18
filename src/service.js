@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { HttpError } from './http.js';
 import { transaction } from './db.js';
 import * as T from './time.js';
-import { cleanMobile, isEmail, clampStr } from './util.js';
+import { cleanMobile, isEmail, clampStr, whatsappNumber } from './util.js';
 import { safeEqual, hmac } from './auth.js';
 
 export const PLATFORMS = ['Zoom', 'Microsoft Teams'];
@@ -104,11 +104,12 @@ export function createService(ctx) {
   // ---- booking creation ----------------------------------------------------------------
   function validateCustomer(input) {
     const name = clampStr(input.name, 100);
-    if (name.length < 2) throw new HttpError(400, 'Please enter your full name.');
+    if (name.length < 2) throw new HttpError(400, 'Please enter your name.');
     const mobile = cleanMobile(String(input.mobile ?? ''));
     if (!mobile) throw new HttpError(400, 'Please enter a valid mobile number, e.g. +971501234567.');
+    // email is optional (the public form does not ask for it; the admin can add it)
     const email = clampStr(input.email, 254).toLowerCase();
-    if (!isEmail(email)) throw new HttpError(400, 'Please enter a valid email address.');
+    if (email && !isEmail(email)) throw new HttpError(400, 'Please enter a valid email address.');
     return { name, mobile, email };
   }
 
@@ -263,9 +264,12 @@ export function createService(ctx) {
     if (!b || !safeEqual(b.manage_token, String(token || ''))) throw new HttpError(404, 'Booking not found. Please check your link.');
     return b;
   }
-  function lookup(ref, email) {
+  function lookup(ref, { mobile = '', email = '' } = {}) {
     const b = q('SELECT * FROM bookings WHERE reference=?').get(String(ref || '').trim().toUpperCase());
-    if (!b || b.email !== String(email || '').trim().toLowerCase()) throw new HttpError(404, 'Booking not found. Check the reference and email.');
+    const m = whatsappNumber(mobile);
+    const e = String(email || '').trim().toLowerCase();
+    const ok = b && ((m.length >= 8 && whatsappNumber(b.mobile) === m) || (e && b.email && b.email === e));
+    if (!ok) throw new HttpError(404, 'Booking not found. Check the reference and mobile number.');
     return b;
   }
   function manageView(b) {
@@ -281,6 +285,7 @@ export function createService(ctx) {
       canRequestRefund: paid && hoursLeft > 0,
       freeRescheduleHours: s.free_reschedule_hours,
       invoiceToken: b.invoice_number ? invoiceToken(b.invoice_number) : null,
+      hasEmail: !!b.email,
     };
   }
   const secret = () => q("SELECT value FROM settings WHERE key='_secret'").get().value;
@@ -392,7 +397,7 @@ export function createService(ctx) {
     }
     if (patch.email !== undefined) {
       const e = str(patch.email, 254).toLowerCase();
-      if (!isEmail(e)) throw new HttpError(400, 'Invalid email address.');
+      if (e && !isEmail(e)) throw new HttpError(400, 'Invalid email address.');
       set.email = e;
     }
     if (patch.platform !== undefined && b.service_kind === 'online') {
@@ -408,7 +413,7 @@ export function createService(ctx) {
     const keys = Object.keys(set);
     if (!keys.length) throw new HttpError(400, 'Nothing to update.');
     q(`UPDATE bookings SET ${keys.map((k) => `${k}=?`).join(', ')}, updated_at=? WHERE id=?`).run(...keys.map((k) => set[k]), ctx.now(), id);
-    if (set.customer_name || set.email || set.mobile) {
+    if (set.customer_name || set.email !== undefined || set.mobile) {
       q('UPDATE invoices SET customer_name=COALESCE(?,customer_name), customer_email=COALESCE(?,customer_email), customer_mobile=COALESCE(?,customer_mobile) WHERE booking_id=?')
         .run(set.customer_name ?? null, set.email ?? null, set.mobile ?? null, id);
     }
