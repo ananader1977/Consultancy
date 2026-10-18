@@ -21,6 +21,7 @@ export const SETTING_DEFAULTS = {
   teams_link: '',
   reminder_hours: '2',
   closed_days: '0',
+  terms_text: "Terms & Conditions for Consultation Bookings\n\n1. Booking and payment\nA booking is confirmed only after full payment by card. Your chosen time is held for 10 minutes while you pay; if payment is not completed, the time is released automatically.\n\n2. Prices and VAT\nPrices are in UAE Dirhams (AED). VAT at 5% is added to the listed price. A tax invoice is issued by email after payment.\n\n3. Sessions\nEach session lasts 1 hour and takes place Monday to Saturday between 9:00 AM and 6:00 PM (Dubai time). Online sessions are held on Zoom or Microsoft Teams; the link is sent by email. Office sessions take place at the address shown in your confirmation.\n\n4. Rescheduling\nYou can reschedule free of charge up to 24 hours before your appointment using \"Manage booking\". Within 24 hours of the appointment, please contact us; changes are at our discretion.\n\n5. Cancellation and refunds\nCancellations requested at least 24 hours before the appointment receive a full refund to the original card. Requests made less than 24 hours before the appointment may not be refunded. No refund is given after the appointment start time or for a missed appointment. Banks may take 5 to 10 working days to show a refund.\n\n6. Late arrival\nIf you join or arrive late, the session still ends at the scheduled time.\n\n7. Your information\nWe use your name, mobile number and email only to manage your booking and to send confirmations and reminders by email and WhatsApp.\n\n8. Nature of the service\nConsultations are not an emergency service. If you or someone else is in immediate danger, call 999 (UAE emergency services).\n\n9. Contact\nFor any question about your booking, reply to your confirmation email.",
 };
 
 const SCHEMA = `
@@ -75,6 +76,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   admin_notes TEXT NOT NULL DEFAULT '',
   manage_token TEXT NOT NULL,
   reminder_sent INTEGER NOT NULL DEFAULT 0,
+  terms_accepted_at INTEGER,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
@@ -154,6 +156,9 @@ export function openDb(dbPath) {
   const db = new DatabaseSync(dbPath);
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
   db.exec(SCHEMA);
+  // migrations for databases created by older versions
+  const cols = db.prepare('PRAGMA table_info(bookings)').all().map((c) => c.name);
+  if (!cols.includes('terms_accepted_at')) db.exec('ALTER TABLE bookings ADD COLUMN terms_accepted_at INTEGER');
   const ins = db.prepare('INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)');
   for (const [k, v] of Object.entries(SETTING_DEFAULTS)) ins.run(k, v);
   ins.run('feed_key', crypto.randomBytes(18).toString('base64url'));

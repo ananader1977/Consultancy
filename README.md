@@ -11,6 +11,7 @@ Zero npm dependencies: Node.js ≥ 22.13 only (built-in `node:sqlite`).
 - **10-minute slot lock** enforced by a database unique index (no double booking, even under concurrent requests). Late payments are honoured if the slot is still free, otherwise auto-refunded.
 - **Tax invoice** (PDF, sequential `INV-YYYY-000001`) created only after payment; credit note on refund.
 - **Notifications**: email to client and owner (invoice PDF + calendar invite attached), WhatsApp (Meta Cloud API), everything logged in Admin → Messages.
+- **Terms & Conditions**: clients must tick an acceptance box (linking to `/terms.html`) before payment; acceptance time is stored per booking. Text is editable in Admin → Settings.
 - **Customer self-service**: reschedule free until 24 h before; refund request until the appointment starts.
 - **Admin console** (`/admin/`): dashboard (confirmed bookings), Outlook-style calendar (paid = green), bookings, refund approval, invoices, prices, settings, admin users, message log, 2-hour reminder pop-up + email, calendar feed (`.ics`) to subscribe in Zoho/Outlook/Google Calendar.
 
@@ -19,7 +20,7 @@ Zero npm dependencies: Node.js ≥ 22.13 only (built-in `node:sqlite`).
 npm start                 # http://localhost:3000, demo payments
 # first start prints the admin email/password once (or set ADMIN_EMAIL / ADMIN_PASSWORD)
 npm run seed-demo         # optional demo data
-npm test                  # 39 tests
+npm test                  # 42 tests
 ```
 Customer site: `/` · Manage booking: `/manage.html` · Admin: `/admin/`
 

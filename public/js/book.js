@@ -63,6 +63,8 @@ function render() {
       h('div', {}, h('label', { for: 'mobile' }, 'Mobile (with country code) *'), h('input', { id: 'mobile', name: 'mobile', type: 'tel', inputmode: 'tel', autocomplete: 'tel', placeholder: '+971 50 123 4567', required: true })),
       h('div', {}, h('label', { for: 'email' }, 'Email *'), h('input', { id: 'email', name: 'email', type: 'email', autocomplete: 'email', required: true }))),
     svc?.kind === 'online' ? [h('label', { for: 'platform' }, 'Meeting platform *'), h('select', { id: 'platform', name: 'platform' }, cfg.platforms.map((p) => h('option', { value: p }, p)))] : null,
+    h('label', { class: 'terms' }, h('input', { type: 'checkbox', id: 'terms', name: 'acceptTerms', required: true }),
+      h('span', {}, 'I have read and accept the ', h('a', { href: '/terms.html', target: '_blank', rel: 'noopener' }, 'Terms & Conditions'), ', including the cancellation and refund policy. *')),
     h('div', { id: 'err', class: 'alert bad hide', role: 'alert' }),
     h('div', { class: 'sticky' },
       h('div', { class: 'small', id: 'sum' }, S.slot ? `${svc.name} · ${dow(S.slot.start)} ${dayLabel(S.slot.start)} ${fmtTime(S.slot.start)}–${fmtTime(S.slot.end)} · ${money(svc.total)}` : 'Choose a time slot above.'),
@@ -79,7 +81,7 @@ function render() {
       h('div', { class: 'mob' }, pills, list), grid, h('p', { class: 'small muted' }, 'Only available slots are shown. Free rescheduling up to ' + cfg.freeRescheduleHours + ' hours before your appointment.')),
     h('section', { class: 'card' }, h('h2', {}, '3. Your details'), form),
     cfg.paymentProvider === 'mock' ? h('div', { class: 'alert' }, 'Demo mode: payments are simulated, no card is charged.') : null);
-  for (const [k, v] of Object.entries(keep)) { const i = app.querySelector(`#f [name="${k}"]`); if (i && v) i.value = v; }
+  for (const [k, v] of Object.entries(keep)) { const i = app.querySelector(`#f [name="${k}"]`); if (!i || !v) continue; if (i.type === 'checkbox') i.checked = true; else i.value = v; }
 }
 function pick(s) { S.slot = s; render(); $('#f').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
 
@@ -87,11 +89,13 @@ async function submit(ev) {
   ev.preventDefault();
   const f = ev.target, err = $('#err'), btn = $('#go');
   const v = Object.fromEntries(new FormData(f));
-  const bad = !v.name?.trim() ? 'Please enter your name.' : !v.mobile?.trim() ? 'Please enter your mobile number.' : !/^\S+@\S+\.\S+$/.test(v.email || '') ? 'Please enter a valid email.' : null;
+  const terms = $('#terms').checked;
+  delete v.acceptTerms;
+  const bad = !v.name?.trim() ? 'Please enter your name.' : !v.mobile?.trim() ? 'Please enter your mobile number.' : !/^\S+@\S+\.\S+$/.test(v.email || '') ? 'Please enter a valid email.' : !terms ? 'Please accept the Terms & Conditions to continue.' : null;
   if (bad) { err.textContent = bad; err.classList.remove('hide'); return; }
   err.classList.add('hide'); btn.disabled = true; btn.textContent = 'Reserving your slot…';
   try {
-    const r = await api('POST', '/api/bookings', { ...v, serviceId: S.svc, slotId: S.slot.id });
+    const r = await api('POST', '/api/bookings', { ...v, acceptTerms: terms, serviceId: S.svc, slotId: S.slot.id });
     location.href = r.checkoutUrl;
   } catch (e) {
     err.textContent = e.status === 409 ? 'Sorry, that slot was just taken. Please choose another.' : e.message;

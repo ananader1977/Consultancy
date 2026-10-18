@@ -325,3 +325,39 @@ describe('rescheduling', () => {
     assert.equal((await resched(b, app.slot(5, 14).id)).status, 409);
   });
 });
+
+describe('terms and conditions', () => {
+  let app;
+  before(async () => { app = await startTestApp(); await app.login(); });
+  after(() => app.close());
+
+  test('customers must accept the terms before they can book and pay', async () => {
+    const s = app.slot(1, 10);
+    for (const v of [undefined, false, 'yes', 1]) {
+      const r = await app.book(s.id, { acceptTerms: v });
+      assert.equal(r.status, 400, String(v));
+      assert.match(r.body.error, /Terms/);
+    }
+    assert.equal(app.ctx.db.prepare('SELECT COUNT(*) n FROM bookings').get().n, 0, 'nothing is created or held');
+    const ok = await app.book(s.id);
+    assert.equal(ok.status, 201);
+    assert.equal(app.dbBooking(ok.body.reference).terms_accepted_at, app.clock.now(), 'acceptance time is recorded');
+  });
+
+  test('the terms text is public and editable by the admin', async () => {
+    const t = await app.call('GET', '/api/terms');
+    assert.equal(t.status, 200);
+    assert.match(t.body.text, /Cancellation and refunds/);
+    const up = await app.call('PUT', '/api/admin/settings', { terms_text: 'Our new terms.\n\n1. Something\nDetails here.' }, { admin: true });
+    assert.equal(up.status, 200);
+    assert.match((await app.call('GET', '/api/terms')).body.text, /Our new terms/);
+    assert.equal((await app.call('PUT', '/api/admin/settings', { terms_text: 'short' }, { admin: true })).status, 400);
+  });
+
+  test('bookings the admin enters for a client do not need the checkbox', async () => {
+    const r = await app.call('POST', '/api/admin/bookings', { name: 'Walk In', mobile: '+971501112233', email: 'walkin@example.com', serviceId: 2, slotId: app.slot(2, 11).id, markPaid: true }, { admin: true });
+    assert.equal(r.status, 201);
+    assert.equal(r.body.booking.terms_accepted_at, null);
+    assert.equal(r.body.booking.status, 'confirmed');
+  });
+});

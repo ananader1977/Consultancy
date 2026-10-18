@@ -51,7 +51,7 @@ export async function startTestApp(overrides = {}, { frozenAt = START } = {}) {
     const ts = dubaiMidnight(clock.now()) + dayOffset * DAY + hour * HOUR;
     return ctx.db.prepare('SELECT id, start_ts, end_ts FROM slots WHERE start_ts=?').get(ts);
   };
-  const customer = (extra = {}) => ({ name: 'Test Customer', mobile: '+971501234567', email: 'customer@example.com', serviceId: 1, platform: 'Zoom', ...extra });
+  const customer = (extra = {}) => ({ name: 'Test Customer', mobile: '+971501234567', email: 'customer@example.com', serviceId: 1, platform: 'Zoom', acceptTerms: true, ...extra });
   const book = (slotId, extra = {}) => call('POST', '/api/bookings', customer({ slotId, ...extra }));
   /** Customer pays on the (mock) checkout page. */
   async function pay(booking) {

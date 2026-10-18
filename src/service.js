@@ -124,6 +124,8 @@ export function createService(ctx) {
     }
     const slotId = Number(input.slotId);
     if (!Number.isInteger(slotId)) throw new HttpError(400, 'Please choose a time slot.');
+    const accepted = input.acceptTerms === true;
+    if (actor === 'customer' && !accepted) throw new HttpError(400, 'Please read and accept the Terms & Conditions to continue.');
     const price = breakdown(service.price, s);
     const now = ctx.now();
 
@@ -146,7 +148,7 @@ export function createService(ctx) {
         throw e;
       }
       const id = Number(info.lastInsertRowid);
-      q('UPDATE bookings SET reference=? WHERE id=?').run(`CO-${T.yymm(now)}-${String(id).padStart(5, '0')}`, id);
+      q('UPDATE bookings SET reference=?, terms_accepted_at=? WHERE id=?').run(`CO-${T.yymm(now)}-${String(id).padStart(5, '0')}`, accepted ? now : null, id);
       return bookingById(id);
     });
     audit(actor, 'booking.created', booking.id, `${booking.service_name} ${T.fmtStamp(booking.start_ts)}`);
@@ -467,7 +469,7 @@ export function createService(ctx) {
     service_kind: b.service_kind, platform: b.platform, slot_id: b.slot_id, start: b.start_ts, end: b.end_ts, status: b.status,
     payment_status: b.payment_status, total: b.total, vat: b.vat, net: b.net, invoice_number: b.invoice_number, meeting_link: b.meeting_link,
     reschedule_count: b.reschedule_count, refund_reason: b.refund_reason, refund_ref: b.refund_ref, admin_notes: b.admin_notes,
-    lock_expires: b.lock_expires, paid_at: b.paid_at, created_at: b.created_at, payment_ref: b.payment_ref,
+    lock_expires: b.lock_expires, terms_accepted_at: b.terms_accepted_at, paid_at: b.paid_at, created_at: b.created_at, payment_ref: b.payment_ref,
   });
 
   function listBookings({ status, search, limit = 200 } = {}) {
@@ -546,6 +548,7 @@ export function createService(ctx) {
       reminder_hours: (v) => intIn(v, 1, 72, 'Reminder hours'),
       zoom_link: (v) => url(v),
       teams_link: (v) => url(v),
+      terms_text: (v) => { v = String(v ?? '').replace(/\r\n/g, '\n').trim().slice(0, 20000); if (v.length < 20) throw new HttpError(400, 'Terms & Conditions text is too short.'); return v; },
       closed_days: (v) => {
         const arr = (Array.isArray(v) ? v : String(v).split(',')).map((x) => String(x).trim()).filter((x) => x !== '');
         if (arr.some((x) => !/^[0-6]$/.test(x))) throw new HttpError(400, 'Closed days must be numbers 0-6 (0 = Sunday).');

@@ -126,9 +126,12 @@ const VIEWS = {
       ['reminder_hours', 'Admin reminder (hours before)'], ['slot_days', 'Booking window (days)'], ['zoom_link', 'Default Zoom link'], ['teams_link', 'Default Teams link'], ['closed_days', 'Closed weekdays (0=Sun, comma separated)']];
     const inputs = Object.fromEntries(fields.map(([k]) => [k, h('input', { value: Array.isArray(s[k]) ? s[k].join(',') : s[k] ?? '' })]));
     const inc = h('input', { type: 'checkbox', checked: !!s.prices_include_vat });
+    const terms = h('textarea', { rows: 14, value: s.terms_text || '' });
     clear(el).append(h('div', { class: 'card' }, h('h2', {}, 'Settings'), h('div', { class: 'row' }, fields.map(([k, l]) => h('div', {}, h('label', {}, l), inputs[k]))),
       h('label', {}, inc, ' Listed prices already include VAT'),
-      h('p', {}, h('button', { class: 'btn', onclick: () => run(async () => { await A('PUT', '/settings', { ...Object.fromEntries(fields.map(([k]) => [k, inputs[k].value])), prices_include_vat: inc.checked }); S.cfg = await api('GET', '/api/config'); await A('POST', '/slots/generate', {}); }, 'Settings saved') }, 'Save settings'))),
+      h('label', {}, 'Terms & Conditions (shown to clients, who must accept before payment)'), terms,
+      h('p', { class: 'small muted' }, 'Blank line between sections; the first line of each section is its heading. Preview: ', h('a', { href: '/terms.html', target: '_blank', rel: 'noopener' }, '/terms.html')),
+      h('p', {}, h('button', { class: 'btn', onclick: () => run(async () => { await A('PUT', '/settings', { ...Object.fromEntries(fields.map(([k]) => [k, inputs[k].value])), prices_include_vat: inc.checked, terms_text: terms.value }); S.cfg = await api('GET', '/api/config'); await A('POST', '/slots/generate', {}); }, 'Settings saved') }, 'Save settings'))),
       h('div', { class: 'card' }, h('h2', {}, 'Integrations'), h('dl', { class: 'kv' },
         h('dt', {}, 'Payments'), h('dd', {}, r.provider === 'stripe' ? 'Stripe (live cards)' : 'Demo (simulated) – set PAYMENT_PROVIDER=stripe'),
         h('dt', {}, 'Email (SMTP)'), h('dd', {}, r.smtpConfigured ? 'Configured' : 'Not configured – emails are only logged'),
@@ -174,6 +177,7 @@ async function detail(id) {
   modal(h('h2', {}, b.reference, ' ', badge(b.status), ' ', badge(b.payment_status)),
     h('dl', { class: 'kv' }, h('dt', {}, 'When'), h('dd', {}, fmtRange(b.start, b.end)), h('dt', {}, 'Service'), h('dd', {}, `${b.service_name}${b.platform ? ' · ' + b.platform : ''}`), h('dt', {}, 'Total'), h('dd', {}, money(b.total)),
       r.invoice ? [h('dt', {}, 'Invoice'), h('dd', {}, r.invoice.number, ' ', h('a', { href: `/api/admin/invoices/${r.invoice.id}/pdf`, target: '_blank', rel: 'noopener' }, 'PDF'))] : null,
+      h('dt', {}, 'Terms accepted'), h('dd', {}, b.terms_accepted_at ? fmtStamp(b.terms_accepted_at) : 'n/a (created by admin)'),
       b.refund_reason ? [h('dt', {}, 'Refund reason'), h('dd', {}, b.refund_reason)] : null),
     h('label', {}, 'Name'), name, h('div', { class: 'row' }, h('div', {}, h('label', {}, 'Mobile'), mobile), h('div', {}, h('label', {}, 'Email'), email)),
     h('label', {}, 'Meeting link (Zoom/Teams)'), link, h('label', {}, 'Internal notes'), notes, h('p', { class: 'row' }, btns),

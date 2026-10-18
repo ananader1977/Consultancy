@@ -42,6 +42,10 @@ export function registerRoutes(app, ctx) {
       now: ctx.now(), today: dubaiMidnight(ctx.now()), paymentProvider: ctx.payments.name,
     });
   });
+  app.get('/api/terms', (req, res) => {
+    const s = ctx.settings();
+    res.json({ company: s.company_name, text: s.terms_text });
+  });
 
   app.get('/api/slots', (req, res) => {
     const [from, to] = dateRange(req, 42);
