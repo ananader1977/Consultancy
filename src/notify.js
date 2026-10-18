@@ -118,7 +118,7 @@ export function createNotifier(ctx) {
         subject: `Booking confirmed - ${b.reference}`,
         headline: 'Your appointment is confirmed',
         intro: 'Thank you - your payment was received and your appointment is confirmed. Your tax invoice and a calendar entry are attached.',
-        extraClient: `<p style="font-size:14px">Rescheduling is free up to ${s.free_reschedule_hours} hours before the appointment.</p>`,
+        extraClient: `<p style="font-size:14px">You can change your appointment free of charge up to ${s.free_reschedule_hours} hours before it, up to ${s.max_changes} times within ${s.change_window_days} days.</p>`,
         attachments: [invoiceAttachment(inv), icsAttachment(b, s, 'PUBLISH')],
         ownerSubject: `New confirmed booking - ${b.reference} - ${b.customer_name} - ${fmtStamp(b.start_ts)}`,
         ownerNote: `New confirmed booking: payment received (AED ${money(b.total)}).`,
@@ -174,9 +174,10 @@ export function createNotifier(ctx) {
     async refundApproved(b, inv) {
       const s = ctx.settings();
       await sendBoth(b, s, {
-        subject: `Refund approved - ${b.reference}`,
-        headline: 'Your refund was approved',
-        intro: `Your refund of <b>AED ${money(b.total)}</b> has been approved and sent to your card (it can take 5-10 business days to appear). A tax credit note is attached.`,
+        subject: `Booking cancelled - ${b.reference}`,
+        headline: 'Your booking was cancelled',
+        intro: `Your booking was cancelled and your payment of <b>AED ${money(b.total)}</b> was returned to your card (it can take 5-10 business days to appear). A tax credit note is attached.`,
+        ownerSubject: `Refund processed - ${b.reference}`,
         attachments: inv ? [invoiceAttachment(inv, true)] : [],
         ownerNote: `Refund processed for ${escHtml(b.reference)} (AED ${money(b.total)}). Reference: ${escHtml(b.refund_ref || '')}.`,
         waKind: 'update',
@@ -185,9 +186,10 @@ export function createNotifier(ctx) {
     async refundRejected(b) {
       const s = ctx.settings();
       await sendBoth(b, s, {
-        subject: `Refund request update - ${b.reference}`,
-        headline: 'Your refund request was not approved',
-        intro: 'We could not approve your refund request. Your appointment remains confirmed.',
+        subject: `Booking update - ${b.reference}`,
+        headline: 'Your appointment remains confirmed',
+        intro: 'We reviewed your request. Your appointment remains confirmed as shown below.',
+        ownerSubject: `Refund request rejected - ${b.reference}`,
         ownerNote: `Refund request rejected for ${escHtml(b.reference)}.`,
       });
     },
@@ -195,8 +197,8 @@ export function createNotifier(ctx) {
       const s = ctx.settings();
       await sendBoth(b, s, {
         subject: `Booking could not be completed - ${b.reference}`,
-        headline: 'Your payment was refunded',
-        intro: `Your payment arrived after the ${s.lock_minutes}-minute reservation expired and the time slot was taken by someone else. Your payment of <b>AED ${money(b.total)}</b> has been refunded in full. Please book another slot.`,
+        headline: 'Your payment was returned',
+        intro: `Your payment arrived after the ${s.lock_minutes}-minute reservation expired and the time slot was taken by someone else. Your payment of <b>AED ${money(b.total)}</b> has been returned in full. Please book another slot.`,
         ownerNote: `Automatic refund issued for ${escHtml(b.reference)} (payment arrived after the slot hold expired and the slot was re-booked).`,
       });
     },

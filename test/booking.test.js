@@ -347,7 +347,8 @@ describe('terms and conditions', () => {
   test('the terms text is public and editable by the admin', async () => {
     const t = await app.call('GET', '/api/terms');
     assert.equal(t.status, 200);
-    assert.match(t.body.text, /Cancellation and refunds/);
+    assert.match(t.body.text, /up to 2 times within 30 calendar days/);
+    assert.doesNotMatch(t.body.text, /refund/i);
     const up = await app.call('PUT', '/api/admin/settings', { terms_text: 'Our new terms.\n\n1. Something\nDetails here.' }, { admin: true });
     assert.equal(up.status, 200);
     assert.match((await app.call('GET', '/api/terms')).body.text, /Our new terms/);

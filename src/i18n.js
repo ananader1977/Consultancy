@@ -27,10 +27,12 @@ const AR = {
   'This payment session has expired.': 'انتهت صلاحية جلسة الدفع.',
   'Payment session not found': 'لم يتم العثور على جلسة الدفع.',
   'Too many requests. Please wait a moment and try again.': 'طلبات كثيرة. يرجى الانتظار قليلاً ثم المحاولة مرة أخرى.',
+  'Online cancellation is not available. Please contact us.': 'الإلغاء عبر الإنترنت غير متاح. يرجى التواصل معنا.',
   'Internal server error': 'حدث خطأ في الخادم. يرجى المحاولة مرة أخرى.',
 };
 const AR_PATTERNS = [
   [/^Free rescheduling closes (\d+) hours before the appointment\. Please contact us\.$/, 'تُغلق إعادة الجدولة المجانية قبل $1 ساعة من الموعد. يرجى التواصل معنا.'],
+  [/^This booking has already been changed (\d+) times within (\d+) days\. No further changes are possible\.$/, 'تم تغيير هذا الحجز $1 مرات خلال $2 يوماً. لا يمكن إجراء أي تغيير آخر.'],
 ];
 export function translateError(msg, lang) {
   if (lang !== 'ar' || !msg) return msg;

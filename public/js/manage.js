@@ -26,18 +26,11 @@ async function show() {
     b.invoiceNumber ? [h('dt', {}, T.taxInvoice), h('dd', {}, h('a', { href: `/api/invoices/${b.invoiceNumber}/pdf?t=${b.invoiceToken}`, target: '_blank', rel: 'noopener' }, T.downloadPdf))] : null))];
   if (b.status === 'pending') out.push(h('a', { class: 'btn', href: `/status.html?ref=${encodeURIComponent(ref)}&t=${encodeURIComponent(tok)}` }, T.continueToPay));
   if (b.status === 'confirmed') {
+    const closed = b.changesLeft <= 0 ? T.noChangesLeft(b.maxChanges, b.changeWindowDays) : T.reschedClosed(b.freeRescheduleHours);
     out.push(h('div', { class: 'card' }, h('h2', {}, T.reschedule),
-      b.canReschedule ? h('div', {}, h('p', { class: 'muted' }, T.freeUntil(b.freeRescheduleHours)), h('div', { id: 'rs' }), h('button', { class: 'btn', onclick: () => pickNew(b) }, T.chooseNewTime))
-        : h('p', { class: 'muted' }, T.reschedClosed(b.freeRescheduleHours))));
-    out.push(h('div', { class: 'card' }, h('h2', {}, T.cancelRefund),
-      b.canRequestRefund ? [h('p', { class: 'muted' }, T.refundInfo),
-        h('label', {}, T.reason), h('textarea', { id: 'why', rows: 2, maxlength: 300 }),
-        h('p', {}, h('button', { class: 'btn danger', onclick: async (e) => { if (!confirm(T.confirmRefund)) return; e.target.disabled = true;
-          try { await api('POST', `/api/manage/${encodeURIComponent(ref)}/refund-request`, { t: tok, reason: $('#why').value }); toast(T.refundRequested); show(); } catch (x) { toast(x.message); e.target.disabled = false; } } }, T.requestRefund))]
-        : h('p', { class: 'muted' }, T.started)));
+      b.canReschedule ? h('div', {}, h('p', { class: 'muted' }, T.freeUntil(b.freeRescheduleHours), ' ', T.changesLeft(b.changesLeft, b.maxChanges, b.changeWindowDays)), h('div', { id: 'rs' }), h('button', { class: 'btn', onclick: () => pickNew(b) }, T.chooseNewTime))
+        : h('p', { class: 'muted' }, closed)));
   }
-  if (b.status === 'refund_requested') out.push(h('div', { class: 'alert' }, T.awaitingRefund));
-  if (b.status === 'refunded') out.push(h('div', { class: 'alert good' }, T.wasRefunded));
   app.replaceChildren(...out);
 }
 

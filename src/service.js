@@ -281,8 +281,10 @@ export function createService(ctx) {
       start: b.start_ts, end: b.end_ts, status: b.status, paymentStatus: b.payment_status, total: b.total, vat: b.vat, net: b.net,
       meetingLink: b.meeting_link || '', invoiceNumber: b.invoice_number, rescheduleCount: b.reschedule_count,
       lockExpires: b.status === 'pending' ? b.lock_expires : null, hoursLeft: Math.round(hoursLeft * 10) / 10,
-      canReschedule: paid && hoursLeft >= s.free_reschedule_hours,
-      canRequestRefund: paid && hoursLeft > 0,
+      changesLeft: changesLeft(b),
+      maxChanges: s.max_changes,
+      changeWindowDays: s.change_window_days,
+      canReschedule: paid && hoursLeft >= s.free_reschedule_hours && changesLeft(b) > 0,
       freeRescheduleHours: s.free_reschedule_hours,
       invoiceToken: b.invoice_number ? invoiceToken(b.invoice_number) : null,
       hasEmail: !!b.email,
@@ -292,6 +294,12 @@ export function createService(ctx) {
   const invoiceToken = (number) => hmac(secret(), `invoice:${number}`);
 
   // ---- rescheduling --------------------------------------------------------------------
+  // client changes per booking are limited: max_changes within change_window_days (admin changes do not count)
+  function changesLeft(b) {
+    const s = ctx.settings();
+    const used = q("SELECT COUNT(*) n FROM audit WHERE booking_id=? AND action='booking.rescheduled' AND actor='customer' AND ts>=?").get(b.id, ctx.now() - s.change_window_days * T.DAY).n;
+    return Math.max(0, s.max_changes - used);
+  }
   function reschedule(id, newSlotId, { by = 'customer', reason = '' } = {}) {
     const s = ctx.settings();
     const now = ctx.now();
@@ -303,6 +311,9 @@ export function createService(ctx) {
       if (b.start_ts <= now) throw new HttpError(409, 'This appointment has already started.');
       if (by === 'customer' && (b.start_ts - now) / T.HOUR < s.free_reschedule_hours) {
         throw new HttpError(403, `Free rescheduling closes ${s.free_reschedule_hours} hours before the appointment. Please contact us.`);
+      }
+      if (by === 'customer' && changesLeft(b) <= 0) {
+        throw new HttpError(403, `This booking has already been changed ${s.max_changes} times within ${s.change_window_days} days. No further changes are possible.`);
       }
       const slot = q('SELECT * FROM slots WHERE id=?').get(Number(newSlotId));
       if (!slot || slot.blocked || slot.start_ts <= now) throw new HttpError(409, 'That time slot is not available.');
@@ -554,6 +565,8 @@ export function createService(ctx) {
       lunch_start: (v) => intIn(v, -1, 23, 'Lunch start (-1 for none)'),
       lock_minutes: (v) => intIn(v, 1, 120, 'Slot lock minutes'),
       free_reschedule_hours: (v) => intIn(v, 0, 720, 'Free reschedule hours'),
+      max_changes: (v) => intIn(v, 0, 20, 'Max changes'),
+      change_window_days: (v) => intIn(v, 1, 365, 'Change window days'),
       slot_days: (v) => intIn(v, 7, 180, 'Booking window days'),
       reminder_hours: (v) => intIn(v, 1, 72, 'Reminder hours'),
       zoom_link: (v) => url(v),

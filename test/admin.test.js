@@ -75,13 +75,15 @@ describe('admin operations', () => {
     assert.equal(app.dbBooking(b.body.reference).start_ts, app.slot(0, 17).start_ts);
   });
 
-  test('refund: request -> admin approves -> credit note, slot released', async () => {
+  test('clients cannot cancel online; admin can still cancel with a refund -> credit note, slot released', async () => {
     const b = await app.book(app.slot(3, 10).id, { email: 'refund@example.com' });
     await app.pay(b);
     const req = await app.call('POST', `/api/manage/${b.body.reference}/refund-request`, { t: b.body.token, reason: 'Cannot attend' });
-    assert.equal(req.status, 200);
+    assert.equal(req.status, 403);
+    const view = await app.call('GET', `/api/manage/${b.body.reference}?t=${b.body.token}`);
+    assert.ok(!('canRequestRefund' in view.body));
     const row = app.dbBooking(b.body.reference);
-    assert.equal(row.status, 'refund_requested');
+    assert.equal(row.status, 'confirmed');
     const ap = await A('POST', `/api/admin/bookings/${row.id}/refund/approve`);
     assert.equal(ap.status, 200);
     const after = app.dbBooking(b.body.reference);
@@ -90,24 +92,43 @@ describe('admin operations', () => {
     assert.match(app.ctx.db.prepare('SELECT credit_note_number c FROM invoices WHERE booking_id=?').get(row.id).c, /^CN-2026-\d{6}$/);
     const ids = (await app.call('GET', '/api/slots?from=2026-10-22&to=2026-10-23')).body.slots.map((x) => x.id);
     assert.ok(ids.includes(app.slot(3, 10).id), 'slot is bookable again');
+    await app.ctx.flush();
+    const mail = app.ctx.db.prepare("SELECT * FROM outbox WHERE booking_id=? AND to_addr='refund@example.com' ORDER BY id DESC").get(row.id);
+    assert.doesNotMatch(mail.subject + mail.body, /refund/i, 'client emails do not use the word refund');
   });
 
-  test('refund can be rejected and booking stays confirmed', async () => {
-    const b = await app.book(app.slot(3, 11).id);
-    await app.pay(b);
-    await app.call('POST', `/api/manage/${b.body.reference}/refund-request`, { t: b.body.token, reason: 'x' });
-    const id = app.dbBooking(b.body.reference).id;
-    assert.equal((await A('POST', `/api/admin/bookings/${id}/refund/reject`)).status, 200);
-    assert.equal(app.dbBooking(b.body.reference).status, 'confirmed');
-  });
-
-  test('refund is impossible once the appointment has started', async () => {
+  test('admin refund is impossible once the appointment has started', async () => {
     const b = await app.book(app.slot(0, 12).id);
     await app.pay(b);
     app.clock.advance(5 * HOUR); // 13:00 > 12:00 start
-    const r = await app.call('POST', `/api/manage/${b.body.reference}/refund-request`, { t: b.body.token, reason: 'late' });
-    assert.equal(r.status, 409);
-    app.clock.advance(-5 * HOUR);
+    try {
+      const r = await A('POST', `/api/admin/bookings/${app.dbBooking(b.body.reference).id}/refund/approve`);
+      assert.equal(r.status, 409);
+    } finally { app.clock.advance(-5 * HOUR); }
+  });
+
+  test('clients can change a booking at most 2 times within 30 days; admin is not limited', async () => {
+    const b = await app.book(app.slot(4, 10).id);
+    await app.pay(b);
+    const move = (d, hr) => app.call('POST', `/api/manage/${b.body.reference}/reschedule`, { t: b.body.token, slotId: app.slot(d, hr).id });
+    const view = () => app.call('GET', `/api/manage/${b.body.reference}?t=${b.body.token}`).then((r) => r.body);
+    assert.equal((await view()).changesLeft, 2);
+    assert.equal((await move(4, 11)).status, 200);
+    assert.equal((await view()).changesLeft, 1);
+    assert.equal((await move(4, 14)).status, 200);
+    const v = await view();
+    assert.equal(v.changesLeft, 0);
+    assert.equal(v.canReschedule, false);
+    const third = await move(4, 15);
+    assert.equal(third.status, 403);
+    assert.match(third.body.error, /changed 2 times within 30 days/);
+    const ar = await app.call('POST', `/api/manage/${b.body.reference}/reschedule`, { t: b.body.token, slotId: app.slot(4, 15).id }, { headers: { 'X-Lang': 'ar' } });
+    assert.match(ar.body.error, /لا يمكن إجراء أي تغيير آخر/);
+    const adm = await A('POST', `/api/admin/bookings/${app.dbBooking(b.body.reference).id}/reschedule`, { slotId: app.slot(4, 15).id });
+    assert.equal(adm.status, 200, 'admin can still move it');
+    await A('PUT', '/api/admin/settings', { max_changes: 3 });
+    assert.equal((await view()).changesLeft, 1, 'limit is editable in settings');
+    await A('PUT', '/api/admin/settings', { max_changes: 2 });
   });
 
   test('reminder: confirmed booking within 2h is flagged once and emailed to admin', async () => {
@@ -190,7 +211,8 @@ describe('client emails: manage link and booking changes', () => {
     assert.equal(r.status, 400);
     assert.match(r.body.error, /الشروط والأحكام/);
     const t = await app.call('GET', '/api/terms?lang=ar');
-    assert.match(t.body.text, /الإلغاء والاسترداد/);
+    assert.match(t.body.text, /مرتين كحد أقصى خلال 30 يوماً/);
+    assert.doesNotMatch(t.body.text, /استرداد/);
     assert.match(t.body.company, /لما الصفدي/);
   });
 });

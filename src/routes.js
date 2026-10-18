@@ -91,7 +91,8 @@ export function registerRoutes(app, ctx) {
     limit(`refundreq:${ip(req)}`, 10, 10 * 60 * 1000);
     const body = await req.json();
     const b = svc.bookingByToken(req.params.ref, body.t);
-    res.json(svc.manageView(svc.requestRefund(b.id, body.reason)));
+    void b; // clients can no longer cancel online; admin handles any cancellation
+    throw new HttpError(403, 'Online cancellation is not available. Please contact us.');
   });
 
   // invoice PDFs (link in the confirmation email is protected by a signed token)
