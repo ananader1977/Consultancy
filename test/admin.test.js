@@ -191,7 +191,7 @@ describe('client emails: manage link and booking changes', () => {
     assert.match(r.body.error, /الشروط والأحكام/);
     const t = await app.call('GET', '/api/terms?lang=ar');
     assert.match(t.body.text, /الإلغاء والاسترداد/);
-    assert.match(t.body.company, /لمى الصفدي/);
+    assert.match(t.body.company, /لما الصفدي/);
   });
 });
 

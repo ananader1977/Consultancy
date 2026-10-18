@@ -6,7 +6,7 @@ const ADMIN = location.pathname.startsWith('/admin');
 export const LANG = ADMIN ? 'en' : param === 'ar' || param === 'en' ? param : saved === 'ar' ? 'ar' : 'en';
 try { if (param === 'ar' || param === 'en') localStorage.setItem('lang', param); } catch { /* ignore */ }
 export const AR = LANG === 'ar';
-export const BRAND_AR = 'لمى الصفدي للاستشارات الإجتماعية والأسرية';
+export const BRAND_AR = 'لما الصفدي لدراسات العلوم الإجتماعية';
 
 const D = {
   en: {

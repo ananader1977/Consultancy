@@ -4,7 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 export const SETTING_DEFAULTS = {
-  company_name: 'Lama Al Safadi Social & Family Consultancy',
+  company_name: 'LAMA ALSAFADI RESEARCH & EXPERIMENT DEVELOPMENT ON SOCIAL SCIENCE',
   company_address: '',
   company_trn: '',
   owner_name: 'Owner',
@@ -25,7 +25,7 @@ export const SETTING_DEFAULTS = {
   reminder_hours: '2',
   closed_days: '0',
   terms_text: "Terms & Conditions for Consultation Bookings\n\n1. Booking and payment\nA booking is confirmed only after full payment by card. Your chosen time is held for 10 minutes while you pay; if payment is not completed, the time is released automatically.\n\n2. Prices and VAT\nPrices are in UAE Dirhams (AED). VAT at 5% is added to the listed price. A tax invoice is issued by email after payment.\n\n3. Sessions\nEach session lasts 1 hour and takes place Monday to Saturday between 9:00 AM and 6:00 PM (Dubai time). Online sessions are held on Zoom or Microsoft Teams; the link is sent by email. Office sessions take place at the address shown in your confirmation.\n\n4. Rescheduling\nYou can reschedule free of charge up to 24 hours before your appointment using \"Manage booking\". Within 24 hours of the appointment, please contact us; changes are at our discretion.\n\n5. Cancellation and refunds\nCancellations requested at least 24 hours before the appointment receive a full refund to the original card. Requests made less than 24 hours before the appointment may not be refunded. No refund is given after the appointment start time or for a missed appointment. Banks may take 5 to 10 working days to show a refund.\n\n6. Late arrival\nIf you join or arrive late, the session still ends at the scheduled time.\n\n7. Your information\nWe use your name, mobile number and email only to manage your booking and to send confirmations and reminders by email and WhatsApp.\n\n8. Nature of the service\nConsultations are not an emergency service. If you or someone else is in immediate danger, call 999 (UAE emergency services).\n\n9. Contact\nFor any question about your booking, call or WhatsApp +971 52 806 6121, email info@lamaalsafadi.ae, or message us on Facebook (lama_alsafadi).",
-  company_name_ar: "لمى الصفدي للاستشارات الإجتماعية والأسرية",
+  company_name_ar: "لما الصفدي لدراسات العلوم الإجتماعية",
   terms_text_ar: "الشروط والأحكام لحجز الاستشارات\n\n1. الحجز والدفع\nلا يتم تأكيد الحجز إلا بعد دفع المبلغ كاملاً بالبطاقة. يُحجز الموعد الذي اخترته لمدة 10 دقائق أثناء الدفع، وإذا لم يكتمل الدفع يُلغى حجز الموعد تلقائياً.\n\n2. الأسعار وضريبة القيمة المضافة\nالأسعار بالدرهم الإماراتي، وتُضاف ضريبة القيمة المضافة بنسبة 5% إلى السعر المعلن. تُرسل الفاتورة الضريبية إلى بريدك الإلكتروني بعد الدفع.\n\n3. الجلسات\nمدة كل جلسة ساعة واحدة، من الاثنين إلى السبت بين الساعة 9:00 صباحاً و6:00 مساءً بتوقيت دبي. تُعقد الجلسات عن بُعد عبر Zoom أو Microsoft Teams ويُرسل الرابط بالبريد الإلكتروني، وتُعقد الجلسات الحضورية في عنوان المكتب الموضح في رسالة التأكيد.\n\n4. إعادة الجدولة\nيمكنك إعادة جدولة موعدك مجاناً حتى 24 ساعة قبل الموعد من خلال صفحة \"إدارة الحجز\". وخلال الـ 24 ساعة السابقة للموعد يرجى التواصل معنا، ويخضع أي تغيير لتقديرنا.\n\n5. الإلغاء والاسترداد\nطلبات الإلغاء المقدمة قبل 24 ساعة أو أكثر من الموعد يُسترد مبلغها كاملاً إلى البطاقة المستخدمة في الدفع. أما الطلبات المقدمة قبل أقل من 24 ساعة من الموعد فقد لا يُسترد مبلغها. ولا يُسترد أي مبلغ بعد بدء الموعد أو في حال عدم الحضور. قد يستغرق ظهور المبلغ المسترد لدى البنك من 5 إلى 10 أيام عمل.\n\n6. التأخر\nفي حال التأخر عن الانضمام أو الحضور، تنتهي الجلسة في وقتها المحدد.\n\n7. بياناتك\nنستخدم اسمك ورقم جوالك وبريدك الإلكتروني فقط لإدارة حجزك وإرسال رسائل التأكيد والتذكير عبر البريد الإلكتروني وواتساب.\n\n8. طبيعة الخدمة\nالاستشارات ليست خدمة طوارئ. إذا كنت أنت أو أي شخص آخر في خطر مباشر، فاتصل بالرقم 999 (خدمات الطوارئ في الإمارات).\n\n9. التواصل\nلأي استفسار بخصوص حجزك، اتصل بنا أو راسلنا عبر واتساب على ⁦+971 52 806 6121⁩، أو عبر البريد الإلكتروني info@lamaalsafadi.ae، أو على فيسبوك (lama_alsafadi)."
 };
 
@@ -172,7 +172,8 @@ export function openDb(dbPath) {
     const row = db.prepare('SELECT value FROM settings WHERE key=?').get(key);
     if (row && row.value.includes(oldLine)) db.prepare('UPDATE settings SET value=? WHERE key=?').run(row.value.replace(oldLine, newLine), key);
   }
-  db.prepare("UPDATE settings SET value=? WHERE key='company_name' AND value='Consultancy Operation'").run(SETTING_DEFAULTS.company_name);
+  db.prepare("UPDATE settings SET value=? WHERE key='company_name' AND value IN ('Consultancy Operation', 'Lama Al Safadi Social & Family Consultancy')").run(SETTING_DEFAULTS.company_name);
+  db.prepare("UPDATE settings SET value=? WHERE key='company_name_ar' AND value=?").run(SETTING_DEFAULTS.company_name_ar, 'لمى الصفدي للاستشارات الإجتماعية والأسرية');
   ins.run('feed_key', crypto.randomBytes(18).toString('base64url'));
   ins.run('_secret', crypto.randomBytes(32).toString('base64url'));
   const svc = db.prepare('SELECT COUNT(*) AS n FROM services').get().n;

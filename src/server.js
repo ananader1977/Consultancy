@@ -23,5 +23,5 @@ if (ctx.bootstrapAdmin) {
 if (config.paymentProvider === 'mock') console.warn('[warn] PAYMENT_PROVIDER=mock: payments are simulated. Use PAYMENT_PROVIDER=stripe for real card payments.');
 if (!config.smtp.host) console.warn('[warn] SMTP not configured: emails are only logged to the outbox (see Admin > Messages).');
 
-server.listen(config.port, () => console.log(`Lama Al Safadi Social & Family Consultancy running at ${config.baseUrl} (port ${config.port})`));
+server.listen(config.port, () => console.log(`LAMA ALSAFADI RESEARCH & EXPERIMENT DEVELOPMENT ON SOCIAL SCIENCE running at ${config.baseUrl} (port ${config.port})`));
 for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { server.close(() => process.exit(0)); setTimeout(() => process.exit(0), 3000).unref(); });

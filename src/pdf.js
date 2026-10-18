@@ -106,7 +106,7 @@ export class Pdf {
     add(`<< /Type /Pages /Kids [${this.pages.map((_, i) => `${6 + i * 2} 0 R`).join(' ')}] /Count ${nPages} >>`);
     add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
     add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
-    add(`<< /Title (${esc(this.title)}) /Author (${esc(this.author)}) /Producer (Lama Al Safadi Consultancy) >>`);
+    add(`<< /Title (${esc(this.title)}) /Author (${esc(this.author)}) /Producer (Lama Alsafadi) >>`);
     // image objects come after the pages: each image = [smask?] + image
     let next = 6 + nPages * 2;
     const imgObjs = [];
