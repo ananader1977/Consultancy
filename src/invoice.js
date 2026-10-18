@@ -28,13 +28,15 @@ export function renderInvoicePdf(inv, { creditNote = false } = {}) {
   const lg = logo();
   const nameX = lg ? L + 66 : L;
   if (lg) pdf.image(lg, L, 26, 56, 56);
-  pdf.text(inv.supplier_name, nameX, 50, { size: 18, bold: true, fill: INK });
-  pdf.text(inv.supplier_trn ? `TRN: ${inv.supplier_trn}` : 'TRN: -', nameX, 68, { size: 10, fill: MUTED });
+  const nameLines = pdf.wrap(inv.supplier_name, R - 175 - nameX, 15, true).slice(0, 3);
+  const nameTop = nameLines.length > 1 ? 44 : 50;
+  nameLines.forEach((t, i) => pdf.text(t, nameX, nameTop + i * 17, { size: 15, bold: true, fill: INK }));
+  pdf.text(inv.supplier_trn ? `TRN: ${inv.supplier_trn}` : 'TRN: -', nameX, nameTop + (nameLines.length - 1) * 17 + 16, { size: 10, fill: MUTED });
   pdf.text(creditNote ? 'TAX CREDIT NOTE' : 'TAX INVOICE', R, 50, { size: 20, bold: true, align: 'right', fill: TEAL });
   pdf.text(`No. ${docNo}`, R, 68, { size: 11, bold: true, align: 'right', fill: INK });
-  pdf.rect(L, 92, R - L, 3, { fill: TEAL });
+  pdf.rect(L, 100, R - L, 3, { fill: TEAL });
 
-  let y = 124;
+  let y = 130;
   pdf.text('FROM', L, y, { size: 8, bold: true, fill: MUTED });
   pdf.text('BILL TO', 310, y, { size: 8, bold: true, fill: MUTED });
   y += 14;
@@ -89,6 +91,7 @@ export function renderInvoicePdf(inv, { creditNote = false } = {}) {
   y += 24;
   pdf.text(creditNote ? 'This tax credit note reverses the invoice above following an approved refund to the original card.' : 'Paid in full by card. Thank you.', L, y, { size: 10, fill: INK });
   pdf.line(L, 790, R, 790, { stroke: LINE });
-  pdf.text(`${inv.supplier_name} - computer-generated document, no signature required. Generated ${fmtStamp(Date.now())} (Dubai time).`, PAGE_W / 2, 808, { size: 8, align: 'center', fill: MUTED });
+  pdf.text(inv.supplier_name, PAGE_W / 2, 804, { size: 8, bold: true, align: 'center', fill: MUTED });
+  pdf.text(`Computer-generated document, no signature required. Generated ${fmtStamp(Date.now())} (Dubai time).`, PAGE_W / 2, 816, { size: 8, align: 'center', fill: MUTED });
   return pdf.toBuffer();
 }

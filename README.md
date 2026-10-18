@@ -1,4 +1,4 @@
-# Consultancy Operation
+# Lama Al Safadi Social & Family Consultancy: Booking App
 
 Mobile-responsive appointment booking system for a consultancy (Dubai, AED, 5% VAT).
 Zero npm dependencies: Node.js ≥ 22.13 only (built-in `node:sqlite`).

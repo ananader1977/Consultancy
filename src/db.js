@@ -4,7 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 export const SETTING_DEFAULTS = {
-  company_name: 'Consultancy Operation',
+  company_name: 'Lama Al Safadi Social & Family Consultancy',
   company_address: '',
   company_trn: '',
   owner_name: 'Owner',
@@ -161,6 +161,8 @@ export function openDb(dbPath) {
   if (!cols.includes('terms_accepted_at')) db.exec('ALTER TABLE bookings ADD COLUMN terms_accepted_at INTEGER');
   const ins = db.prepare('INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)');
   for (const [k, v] of Object.entries(SETTING_DEFAULTS)) ins.run(k, v);
+  // rename installs that still use the old placeholder name
+  db.prepare("UPDATE settings SET value=? WHERE key='company_name' AND value='Consultancy Operation'").run(SETTING_DEFAULTS.company_name);
   ins.run('feed_key', crypto.randomBytes(18).toString('base64url'));
   ins.run('_secret', crypto.randomBytes(32).toString('base64url'));
   const svc = db.prepare('SELECT COUNT(*) AS n FROM services').get().n;

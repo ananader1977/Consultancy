@@ -6,7 +6,7 @@ h1,h2,h3{line-height:1.25;margin:0 0 .5rem}h1{font-size:1.6rem}h2{font-size:1.2r
 a{color:var(--brand)}
 .wrap{max-width:1040px;margin:0 auto;padding:16px}
 .top{background:#fff;color:var(--ink);border-bottom:3px solid var(--brand)}.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px}
-.top a{color:var(--brand);text-decoration:none;font-weight:600}.top .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.1rem;color:var(--ink)}.top .logo{width:40px;height:40px;flex:none}.top nav a{white-space:nowrap}
+.top a{color:var(--brand);text-decoration:none;font-weight:600}.top .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.05rem;line-height:1.25;color:var(--ink)}.top .logo{width:40px;height:40px;flex:none}.top nav a{white-space:nowrap}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin:0 0 16px}
 .muted{color:var(--muted)}.small{font-size:.875rem}.right{text-align:right}.hide{display:none!important}
 label{display:block;font-weight:600;font-size:.9rem;margin:12px 0 4px}
@@ -61,3 +61,4 @@ dialog{border:0;border-radius:14px;padding:0;max-width:min(560px,94vw);width:100
 .kv{display:grid;grid-template-columns:130px 1fr;gap:4px 12px}.kv dt{color:var(--muted)}.kv dd{margin:0;word-break:break-word}
 @media print{.top,.btn,.tabs{display:none}}
 .terms{display:flex;gap:10px;align-items:flex-start;font-weight:400;margin:16px 0 4px;line-height:1.4}.terms input{width:22px;height:22px;min-height:0;flex:none;margin-top:1px;accent-color:var(--brand)}
+@media(max-width:480px){.top .brand{font-size:.92rem}.top nav a{font-size:.9rem}}

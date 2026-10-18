@@ -18,8 +18,8 @@ const stamp = (ts) => new Date(ts).toISOString().replace(/[-:]/g, '').replace(/\
  * events: [{uid,start,end,summary,description,location,color,status}] - times are epoch ms.
  * alarmMinutes adds a popup (DISPLAY) and an EMAIL alarm that many minutes before the start.
  */
-export function buildIcs(events, { name = 'Consultancy Operation', alarmMinutes = 120, now = Date.now(), method } = {}) {
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Consultancy Operation//Bookings//EN', 'CALSCALE:GREGORIAN'];
+export function buildIcs(events, { name = 'Lama Al Safadi Consultancy', alarmMinutes = 120, now = Date.now(), method } = {}) {
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Lama Al Safadi Consultancy//Bookings//EN', 'CALSCALE:GREGORIAN'];
   if (method) lines.push(`METHOD:${method}`);
   lines.push(`X-WR-CALNAME:${esc(name)}`, 'X-WR-TIMEZONE:Asia/Dubai');
   for (const e of events) {
