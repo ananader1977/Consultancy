@@ -17,7 +17,7 @@ const D = {
     intro: (a, b, m) => `Mon–Sat, ${a}:00–${b}:00 Dubai time · 1-hour sessions · your slot is held for ${m} minutes while you pay.`,
     steps: ['1 Session', '2 Time', '3 Details', '4 Pay'],
     chooseService: '1. Choose a session', pickTime: '2. Pick a time', yourDetails: '3. Your details',
-    svcOnline: 'Online', svcOffline: 'Offline',
+    svcOnline: 'Online', svcOffline: 'Office',
     onlineDesc: 'Phone Call, Zoom or Botim', offlineDesc: 'In person at our office',
     inclVat: (r) => `incl. ${r}% VAT`, plusVat: (p, r) => `${p} + ${r}% VAT`,
     prev: '‹ Prev', next: 'Next ›', prevWeek: 'Previous week', nextWeek: 'Next week', weekly: 'Weekly availability',

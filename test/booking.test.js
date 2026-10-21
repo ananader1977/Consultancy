@@ -13,7 +13,7 @@ describe('slots and pricing', () => {
     assert.equal(r.status, 200);
     const [online, offline] = r.body.services;
     assert.deepEqual([online.name, online.price, online.vat, online.total], ['Online', 300, 14.29, 300]);
-    assert.deepEqual([offline.name, offline.price, offline.vat, offline.total], ['Offline', 500, 23.81, 500]);
+    assert.deepEqual([offline.name, offline.price, offline.vat, offline.total], ['Office', 500, 23.81, 500]);
   });
 
   test('slots are 1 hour, 10:00-18:00, no lunch slot at 13:00, never on Sunday', async () => {

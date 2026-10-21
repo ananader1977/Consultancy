@@ -231,6 +231,7 @@ export function openDb(dbPath) {
     const fresh = SETTING_DEFAULTS[key].match(re)[0];
     if (row && re.test(row.value) && !row.value.includes(fresh)) db.prepare('UPDATE settings SET value=? WHERE key=?').run(row.value.replace(re, fresh), key);
   }
+  db.prepare("UPDATE services SET name='Office' WHERE name='Offline'").run(); // renamed Oct 2026
   db.prepare("UPDATE settings SET value=? WHERE key='company_name' AND value IN ('Consultancy Operation', 'Lama Al Safadi Social & Family Consultancy')").run(SETTING_DEFAULTS.company_name);
   db.prepare("UPDATE settings SET value=? WHERE key='company_name_ar' AND value=?").run(SETTING_DEFAULTS.company_name_ar, 'لمى الصفدي للاستشارات الإجتماعية والأسرية');
   ins.run('feed_key', crypto.randomBytes(18).toString('base64url'));
@@ -239,7 +240,7 @@ export function openDb(dbPath) {
   if (svc === 0) {
     const s = db.prepare('INSERT INTO services(name,kind,description,price,active) VALUES(?,?,?,?,1)');
     s.run('Online', 'online', 'One-hour session by phone call, Zoom or Botim', 300);
-    s.run('Offline', 'offline', 'One-hour session at our office', 500);
+    s.run('Office', 'offline', 'One-hour session at our office', 500);
   }
   return db;
 }
