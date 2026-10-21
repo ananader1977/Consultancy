@@ -25,7 +25,7 @@ async function load() {
     b.meetingLink ? [h('dt', {}, T.meetingLink), h('dd', {}, h('a', { href: b.meetingLink }, b.meetingLink))] : null,
     b.invoiceNumber ? [h('dt', {}, T.taxInvoice), h('dd', {}, h('a', { href: `/api/invoices/${b.invoiceNumber}/pdf?t=${b.invoiceToken}`, target: '_blank', rel: 'noopener' }, `${b.invoiceNumber} (PDF)`))] : null)));
   const actions = h('p', { class: 'row' });
-  if (b.status === 'pending') actions.append(h('a', { class: 'btn', href: '/' }, T.chooseAnother));
+  if (b.status === 'pending') actions.append(h('a', { class: 'btn', href: `/pay.html?ref=${encodeURIComponent(ref)}&t=${encodeURIComponent(t)}` }, T.payNow), h('a', { class: 'btn alt', href: '/' }, T.chooseAnother));
   if (b.status === 'confirmed' || b.status === 'refund_requested') actions.append(h('a', { class: 'btn', href: manage }, T.reschedOrRefund), h('button', { class: 'btn alt', onclick: () => print() }, T.print));
   kids.push(actions);
   if (b.status === 'confirmed' || b.status === 'refund_requested') {

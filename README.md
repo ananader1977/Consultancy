@@ -29,7 +29,7 @@ Customer site: `/` · Manage booking: `/manage.html` · Admin: `/admin/`
 ## Going live
 1. Copy `.env.example` → `.env` values into your host's environment settings.
 2. `PAYMENT_PROVIDER=stripe`, set `STRIPE_SECRET_KEY`, and add a Stripe webhook to `BASE_URL/api/webhooks/stripe` (event `checkout.session.completed`) with `STRIPE_WEBHOOK_SECRET`. The app refuses to start with mock payments in production.
-3. Set `SMTP_*` for email and `WHATSAPP_*` for WhatsApp (create approved templates `booking_confirmation` and `booking_update`).
+3. Set `SMTP_*` for email and `WHATSAPP_*` for WhatsApp (create approved templates `booking_confirmation`, `booking_update` and `payment_link` — the payment template takes 6 parameters: name, reference, time, service, amount, payment link).
 4. In Admin → Settings fill company name, address, **TRN**, owner email, Zoom/Teams links.
 5. Run behind HTTPS (`BASE_URL=https://…`, `TRUST_PROXY=true`). Persist the `data/` folder (SQLite) and back it up.
 

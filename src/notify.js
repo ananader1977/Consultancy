@@ -30,11 +30,11 @@ export function createNotifier(ctx) {
     }
   }
 
-  async function whatsapp({ booking, kind }) {
+  async function whatsapp({ booking, kind, extra = [] }) {
     const w = config.whatsapp;
     const to = whatsappNumber(booking.mobile);
-    const template = kind === 'confirmation' ? w.templateConfirm : w.templateUpdate;
-    const params = [booking.customer_name, booking.reference, fmtRange(booking.start_ts, booking.end_ts), booking.service_name];
+    const template = kind === 'confirmation' ? w.templateConfirm : kind === 'payment' ? w.templatePayment : w.templateUpdate;
+    const params = [booking.customer_name, booking.reference, fmtRange(booking.start_ts, booking.end_ts), booking.service_name, ...extra];
     const summary = `[template:${template}] ${params.join(' | ')}`;
     if (!w.token || !w.phoneNumberId) return logRow('whatsapp', to, template, summary, 'logged', 'WhatsApp not configured', booking.id);
     try {
@@ -117,6 +117,16 @@ export function createNotifier(ctx) {
       return { to, ...r };
     },
     whatsapp,
+    async paymentLink(b, url) {
+      const s = ctx.settings();
+      const until = b.lock_expires ? fmtStamp(b.lock_expires) : '';
+      if (b.email) {
+        const inner = `<p>Dear ${escHtml(b.customer_name)},</p><p>Your session is reserved. Please complete the payment to confirm it${until ? ` before <b>${escHtml(until)}</b> (Dubai time)` : ''}.</p>${details(b, s)}
+<p style="margin:20px 0"><a href="${escHtml(url)}" style="background:#5b4a8a;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Pay now</a></p><p style="font-size:13px;color:#6b7280">${escHtml(url)}</p>`;
+        await email({ to: b.email, subject: `Payment link - ${b.reference}`, text: `Dear ${b.customer_name},\n\nPlease complete the payment to confirm your session${until ? ` before ${until} (Dubai time)` : ''}:\n${url}\n\n${plain(b)}`, html: layout(s, 'Complete your payment', inner), bookingId: b.id });
+      }
+      await whatsapp({ booking: b, kind: 'payment', extra: [toText(`${dh()}${money(b.total)}`), url] });
+    },
     async bookingConfirmed(b, inv) {
       const s = ctx.settings();
       await sendBoth(b, s, {

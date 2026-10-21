@@ -238,9 +238,9 @@ describe('payment, invoice and notifications', () => {
 
   test('client and owner are emailed, invoice + calendar attached, WhatsApp sent', async () => {
     const rows = app.ctx.db.prepare('SELECT * FROM outbox WHERE booking_id=? ORDER BY id').all(app.dbBooking(booking.body.reference).id);
-    const clientMail = rows.find((r) => r.channel === 'email' && r.to_addr === 'client@example.com');
+    const clientMail = rows.find((r) => r.channel === 'email' && r.to_addr === 'client@example.com' && /Booking confirmed/.test(r.subject));
     const ownerMail = rows.find((r) => r.channel === 'email' && r.to_addr === 'owner@example.com');
-    const wa = rows.find((r) => r.channel === 'whatsapp');
+    const wa = rows.find((r) => r.channel === 'whatsapp' && r.subject === 'booking_confirmation');
     assert.ok(clientMail, 'client email');
     assert.ok(ownerMail, 'owner email');
     assert.ok(wa, 'whatsapp message');
@@ -252,11 +252,11 @@ describe('payment, invoice and notifications', () => {
     assert.match(wa.body, /booking_confirmation/);
   });
 
-  test('an unpaid booking never produces notifications or invoices', async () => {
-    const before = app.ctx.db.prepare('SELECT COUNT(*) n FROM outbox').get().n;
+  test('an unpaid booking only gets the payment link: no confirmation or invoice', async () => {
     const b = await app.book(app.slot(4, 10).id, { email: 'unpaid@example.com' });
     await app.ctx.flush();
-    assert.equal(app.ctx.db.prepare('SELECT COUNT(*) n FROM outbox').get().n, before);
+    const msgs = app.ctx.db.prepare('SELECT * FROM outbox WHERE booking_id=?').all(app.dbBooking(b.body.reference).id);
+    assert.deepEqual(msgs.map((m) => m.subject).sort(), [`Payment link - ${b.body.reference}`, 'payment_link']);
     assert.equal(app.ctx.db.prepare('SELECT COUNT(*) n FROM invoices WHERE booking_id=?').get(app.dbBooking(b.body.reference).id).n, 0);
   });
 });
@@ -426,5 +426,53 @@ describe('prices include VAT and the not-medical notice', () => {
     assert.doesNotMatch(en + ar, /999/);
     const cfg = (await app.call('GET', '/api/config')).body;
     assert.equal(cfg.pricesIncludeVat, true);
+  });
+});
+
+describe('payment links', () => {
+  let app;
+  before(async () => { app = await startTestApp(); await app.login(); });
+  after(() => app.close());
+  const A = (m, p, b) => app.call(m, p, b, { admin: true });
+  const out = (id) => app.ctx.db.prepare('SELECT * FROM outbox WHERE booking_id=? ORDER BY id').all(id);
+
+  test('client gets the payment link by WhatsApp (and email) when they start checkout', async () => {
+    const b = await app.book(app.slot(2, 10).id, { email: 'paylink@example.com' });
+    await app.ctx.flush();
+    const id = app.dbBooking(b.body.reference).id;
+    const msgs = out(id);
+    assert.ok(msgs.some((m) => m.channel === 'whatsapp' && m.subject === 'payment_link' && m.body.includes(`/pay.html?ref=${b.body.reference}&t=${b.body.token}`)));
+    assert.ok(msgs.some((m) => m.channel === 'email' && /Payment link/.test(m.subject) && m.body.includes('/pay.html?ref=')));
+  });
+
+  test('admin sends the link for a pending booking; hold extended; link opens checkout; payment confirms', async () => {
+    const b = await app.book(app.slot(2, 11).id);
+    const id = app.dbBooking(b.body.reference).id;
+    const r = await A('POST', `/api/admin/bookings/${id}/payment-link`, {});
+    assert.equal(r.status, 200);
+    assert.match(r.body.payUrl, /\/pay\.html\?ref=CO-/);
+    assert.ok(r.body.booking.lock_expires >= app.ctx.now() + 23 * HOUR, 'held for 24h');
+    app.clock.advance(2 * HOUR); // well past the normal 10-minute hold
+    const p = await app.call('POST', `/api/bookings/${b.body.reference}/pay`, { t: b.body.token });
+    assert.equal(p.status, 200);
+    assert.ok(p.body.checkoutUrl);
+    const sid = new URL(p.body.checkoutUrl).searchParams.get('s');
+    assert.equal((await app.call('POST', `/api/pay/mock/${sid}/complete`, {})).status, 200);
+    await app.ctx.flush();
+    assert.equal(app.dbBooking(b.body.reference).status, 'confirmed');
+    const again = await app.call('POST', `/api/bookings/${b.body.reference}/pay`, { t: b.body.token });
+    assert.equal(again.body.paid, true);
+    assert.equal((await A('POST', `/api/admin/bookings/${id}/payment-link`, {})).status, 409, 'not for paid bookings');
+    app.clock.advance(-2 * HOUR);
+  });
+
+  test('an expired link cannot be paid; wrong token rejected', async () => {
+    const b = await app.book(app.slot(3, 10).id);
+    assert.equal((await app.call('POST', `/api/bookings/${b.body.reference}/pay`, { t: 'bad' })).status, 404);
+    app.clock.advance(11 * 60000);
+    const r = await app.call('POST', `/api/bookings/${b.body.reference}/pay`, { t: b.body.token }, { headers: { 'X-Lang': 'ar' } });
+    assert.equal(r.status, 409);
+    assert.match(r.body.error, /انتهت صلاحية رابط الدفع/);
+    app.clock.advance(-11 * 60000);
   });
 });

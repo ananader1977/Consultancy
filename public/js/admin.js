@@ -123,7 +123,7 @@ const VIEWS = {
   async settings(el) {
     const r = await A('GET', '/settings'); const s = r.settings;
     const fields = [['company_name', 'Company name'], ['company_name_ar', 'Company name (Arabic)'], ['company_address', 'Address'], ['company_trn', 'Tax Registration Number (TRN)'], ['owner_name', 'Owner name'], ['owner_email', 'Admin notification email (new & modified bookings)'], ['contact_phone', 'Contact phone / WhatsApp (shown to clients)'], ['contact_email', 'Contact email (shown to clients)'], ['facebook', 'Facebook page name'], ['vat_rate', 'VAT %'],
-      ['work_start', 'Day starts (hour)'], ['work_end', 'Day ends (hour)'], ['lunch_start', 'Lunch hour (-1 = none)'], ['lock_minutes', 'Slot lock (minutes)'], ['free_reschedule_hours', 'Free reschedule until (hours before)'], ['max_changes', 'Max client changes per booking'], ['change_window_days', 'Within (calendar days)'],
+      ['work_start', 'Day starts (hour)'], ['work_end', 'Day ends (hour)'], ['lunch_start', 'Lunch hour (-1 = none)'], ['lock_minutes', 'Slot lock (minutes)'], ['free_reschedule_hours', 'Free reschedule until (hours before)'], ['max_changes', 'Max client changes per booking'], ['payment_link_hours', 'Payment link valid for (hours)'], ['change_window_days', 'Within (calendar days)'],
       ['reminder_hours', 'Admin reminder (hours before)'], ['slot_days', 'Booking window (days)'], ['zoom_link', 'Default Zoom link'], ['closed_days', 'Closed weekdays (0=Sun, comma separated)']];
     const inputs = Object.fromEntries(fields.map(([k]) => [k, h('input', { value: Array.isArray(s[k]) ? s[k].join(',') : s[k] ?? '' })]));
     inputs.company_name_ar.dir = 'rtl';
@@ -175,12 +175,14 @@ async function detail(id) {
   const name = h('input', { value: b.customer_name }), mobile = h('input', { value: b.mobile }), email = h('input', { value: b.email });
   const btns = [h('button', { class: 'btn', onclick: async () => { if (await run(() => A('PATCH', `/bookings/${id}`, { customer_name: name.value, mobile: mobile.value, email: email.value, meeting_link: link.value, admin_notes: notes.value }), 'Saved')) refresh(); } }, 'Save changes')];
   if (['confirmed', 'pending'].includes(b.status)) btns.push(h('button', { class: 'btn alt', onclick: () => reschedulePicker(b) }, 'Reschedule'));
+  if (b.status === 'pending') btns.push(h('button', { class: 'btn', onclick: async () => { const r = await run(() => A('POST', `/bookings/${id}/payment-link`, {})); if (r) { toast(`Payment link sent to the client (valid until ${fmtStamp(r.booking.lock_expires)})`, 6000); try { await navigator.clipboard.writeText(r.payUrl); } catch { /* clipboard blocked */ } refresh(); } } }, 'Send payment link'));
   if (b.status === 'pending') btns.push(h('button', { class: 'btn ok', onclick: async () => { if (await run(() => A('POST', `/bookings/${id}/mark-paid`, {}), 'Marked paid')) { dlg.close(); refresh(); } } }, 'Mark paid'), h('button', { class: 'btn danger', onclick: async () => { if (await run(() => A('POST', `/bookings/${id}/cancel`, {}), 'Cancelled')) { dlg.close(); refresh(); } } }, 'Cancel'));
   if (b.status === 'refund_requested') btns.push(h('button', { class: 'btn ok', onclick: () => approve(b) }, 'Approve refund'), h('button', { class: 'btn danger', onclick: () => reject(b) }, 'Reject'));
   if (b.status === 'confirmed') btns.push(h('button', { class: 'btn danger', onclick: () => approve(b) }, 'Refund & cancel'));
   modal(h('h2', {}, b.reference, ' ', badge(b.status), ' ', badge(b.payment_status)),
     h('dl', { class: 'kv' }, h('dt', {}, 'When'), h('dd', {}, fmtRange(b.start, b.end)), h('dt', {}, 'Service'), h('dd', {}, `${b.service_name}${b.platform ? ' · ' + b.platform : ''}`), h('dt', {}, 'Total'), h('dd', {}, money(b.total)),
       r.invoice ? [h('dt', {}, 'Invoice'), h('dd', {}, r.invoice.number, ' ', h('a', { href: `/api/admin/invoices/${r.invoice.id}/pdf`, target: '_blank', rel: 'noopener' }, 'PDF'))] : null,
+      b.status === 'pending' && b.lock_expires ? [h('dt', {}, 'Pay by'), h('dd', {}, fmtStamp(b.lock_expires))] : null,
       h('dt', {}, 'Terms accepted'), h('dd', {}, b.terms_accepted_at ? fmtStamp(b.terms_accepted_at) : 'n/a (created by admin)'),
       b.refund_reason ? [h('dt', {}, 'Refund reason'), h('dd', {}, b.refund_reason)] : null),
     h('label', {}, 'Name'), name, h('div', { class: 'row' }, h('div', {}, h('label', {}, 'Mobile'), mobile), h('div', {}, h('label', {}, 'Email (optional)'), email)),

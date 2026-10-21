@@ -159,13 +159,53 @@ export function createService(ctx) {
     try {
       const session = await ctx.payments.createCheckout(booking);
       q('UPDATE bookings SET payment_session_id=?, updated_at=? WHERE id=?').run(session.id, ctx.now(), booking.id);
-      return { booking: bookingById(booking.id), checkoutUrl: session.url };
+      const nb = bookingById(booking.id);
+      if (actor === 'customer') ctx.background(ctx.notifier.paymentLink(nb, payLinkUrl(nb)));
+      return { booking: nb, checkoutUrl: session.url };
     } catch (e) {
       console.error('[createCheckout]', e.message);
       q("UPDATE bookings SET status='cancelled', updated_at=? WHERE id=?").run(ctx.now(), booking.id);
       audit('system', 'booking.checkout_failed', booking.id, e.message);
       throw new HttpError(502, 'The payment service is unavailable right now. Please try again in a moment.');
     }
+  }
+
+  // ---- payment links ---------------------------------------------------------------------
+  const payLinkUrl = (b) => `${ctx.config.baseUrl}/pay.html?ref=${encodeURIComponent(b.reference)}&t=${b.manage_token}`;
+
+  /** Public: open a fresh checkout for a pending booking (the link sent to the client). */
+  async function startPayment(ref, token) {
+    let b = bookingByToken(ref, token);
+    expireDue();
+    b = bookingById(b.id);
+    if (b.payment_status === 'paid') return { paid: true, booking: b };
+    if (b.status !== 'pending') throw new HttpError(409, 'This payment link has expired. Please contact us for a new link.');
+    if (b.payment_session_id) {
+      const r = await ctx.payments.retrieve(b.payment_session_id).catch(() => ({ paid: false }));
+      if (r.paid) { await handlePayment(b.id, r.paymentRef, { actor: 'system' }); return { paid: true, booking: bookingById(b.id) }; }
+      await ctx.payments.expireSession(b.payment_session_id).catch(() => {});
+    }
+    const session = await ctx.payments.createCheckout(b);
+    q('UPDATE bookings SET payment_session_id=?, updated_at=? WHERE id=?').run(session.id, ctx.now(), b.id);
+    audit('customer', 'payment.link_opened', b.id);
+    return { paid: false, checkoutUrl: session.url };
+  }
+
+  /** Admin: send (or resend) the payment link for a pending booking and keep the slot held for payment_link_hours. */
+  function sendPaymentLink(id, actor) {
+    const s = ctx.settings();
+    const b = mustBooking(id);
+    expireDue();
+    const cur = bookingById(id);
+    if (cur.status !== 'pending' || cur.payment_status !== 'unpaid') throw new HttpError(409, 'A payment link can only be sent for pending, unpaid bookings.');
+    if (cur.start_ts <= ctx.now()) throw new HttpError(409, 'This appointment has already started.');
+    const until = Math.min(cur.start_ts, Math.max(cur.lock_expires || 0, ctx.now() + s.payment_link_hours * T.HOUR));
+    q('UPDATE bookings SET lock_expires=?, updated_at=? WHERE id=?').run(until, ctx.now(), b.id);
+    const nb = bookingById(id);
+    const url = payLinkUrl(nb);
+    audit(actor, 'payment.link_sent', nb.id, `valid until ${T.fmtStamp(until)}`);
+    ctx.background(ctx.notifier.paymentLink(nb, url));
+    return { booking: nb, payUrl: url };
   }
 
   // ---- payment handling ----------------------------------------------------------------
@@ -567,6 +607,7 @@ export function createService(ctx) {
       lock_minutes: (v) => intIn(v, 1, 120, 'Slot lock minutes'),
       free_reschedule_hours: (v) => intIn(v, 0, 720, 'Free reschedule hours'),
       max_changes: (v) => intIn(v, 0, 20, 'Max changes'),
+      payment_link_hours: (v) => intIn(v, 1, 168, 'Payment link validity (hours)'),
       change_window_days: (v) => intIn(v, 1, 365, 'Change window days'),
       slot_days: (v) => intIn(v, 7, 180, 'Booking window days'),
       reminder_hours: (v) => intIn(v, 1, 72, 'Reminder hours'),
@@ -628,6 +669,6 @@ export function createService(ctx) {
     breakdown, generateSlots, expireDue, listAvailableSlots, createBooking, handlePayment, syncPayment, bookingByToken, lookup, manageView,
     invoiceToken, invoiceFull, reschedule, requestRefund, approveRefund, rejectRefund, adminUpdateBooking, cancelPending, markPaidManually,
     adminCreateBooking, setSlotBlocked, adminCalendar, listBookings, dashboard, upcomingWithin, runReminders, updateSettings, upsertService,
-    feedEvents, bookingById, publicAdminBooking, audit,
+    feedEvents, bookingById, publicAdminBooking, audit, startPayment, sendPaymentLink, payLinkUrl,
   };
 }

@@ -65,6 +65,14 @@ export function registerRoutes(app, ctx) {
     res.json({ reference: booking.reference, token: booking.manage_token, checkoutUrl, lockExpires: booking.lock_expires, total: booking.total }, 201);
   });
 
+  // payment link sent to the client: opens a fresh checkout for a pending booking
+  app.post('/api/bookings/:ref/pay', async (req, res) => {
+    limit(`pay:${ip(req)}`, 20, 10 * 60 * 1000);
+    const body = await req.json();
+    const r = await svc.startPayment(req.params.ref, body.t);
+    res.json(r.paid ? { paid: true } : { checkoutUrl: r.checkoutUrl });
+  });
+
   app.get('/api/bookings/:ref/status', async (req, res) => {
     const b = svc.bookingByToken(req.params.ref, req.query.t);
     const fresh = await svc.syncPayment(b.id);
@@ -239,6 +247,10 @@ export function registerRoutes(app, ctx) {
   });
   app.post('/api/admin/bookings/:id/refund/approve', admin, async (req, res) => res.json({ booking: svc.publicAdminBooking(await svc.approveRefund(idParam(req), req.admin.email)) }));
   app.post('/api/admin/bookings/:id/refund/reject', admin, async (req, res) => res.json({ booking: svc.publicAdminBooking(svc.rejectRefund(idParam(req), req.admin.email)) }));
+  app.post('/api/admin/bookings/:id/payment-link', admin, (req, res) => {
+    const r = svc.sendPaymentLink(idParam(req), req.admin.email);
+    res.json({ booking: svc.publicAdminBooking(r.booking), payUrl: r.payUrl });
+  });
   app.post('/api/admin/bookings/:id/mark-paid', admin, async (req, res) => res.json({ booking: svc.publicAdminBooking(await svc.markPaidManually(idParam(req), req.admin.email)) }));
   app.post('/api/admin/bookings/:id/cancel', admin, (req, res) => res.json({ booking: svc.publicAdminBooking(svc.cancelPending(idParam(req), req.admin.email)) }));
 

@@ -28,6 +28,7 @@ const AR = {
   'Payment session not found': 'لم يتم العثور على جلسة الدفع.',
   'Too many requests. Please wait a moment and try again.': 'طلبات كثيرة. يرجى الانتظار قليلاً ثم المحاولة مرة أخرى.',
   'Online cancellation is not available. Please contact us.': 'الإلغاء عبر الإنترنت غير متاح. يرجى التواصل معنا.',
+  'This payment link has expired. Please contact us for a new link.': 'انتهت صلاحية رابط الدفع. يرجى التواصل معنا للحصول على رابط جديد.',
   'Internal server error': 'حدث خطأ في الخادم. يرجى المحاولة مرة أخرى.',
 };
 const AR_PATTERNS = [

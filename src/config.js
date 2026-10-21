@@ -33,6 +33,7 @@ export function loadConfig(env = process.env) {
       phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID || '',
       templateConfirm: env.WHATSAPP_TEMPLATE_CONFIRMATION || 'booking_confirmation',
       templateUpdate: env.WHATSAPP_TEMPLATE_UPDATE || 'booking_update',
+      templatePayment: env.WHATSAPP_TEMPLATE_PAYMENT || 'payment_link',
       language: env.WHATSAPP_TEMPLATE_LANGUAGE || 'en',
       apiVersion: env.WHATSAPP_API_VERSION || 'v20.0',
       baseUrl: env.WHATSAPP_API_BASE || 'https://graph.facebook.com',

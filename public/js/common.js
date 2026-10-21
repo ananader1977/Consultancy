@@ -66,7 +66,8 @@ export const qs = (k) => new URLSearchParams(location.search).get(k);
 export function countdown(el, until, onDone) {
   const tick = () => {
     const left = Math.max(0, until - Date.now());
-    el.textContent = `${Math.floor(left / 60000)}:${String(Math.floor(left / 1000) % 60).padStart(2, '0')}`;
+    const hh = Math.floor(left / 3600000), mm = Math.floor(left / 60000) % 60, ss = String(Math.floor(left / 1000) % 60).padStart(2, '0');
+    el.textContent = hh ? `${hh}:${String(mm).padStart(2, '0')}:${ss}` : `${mm}:${ss}`;
     if (left <= 0) { clearInterval(iv); onDone?.(); }
   };
   const iv = setInterval(tick, 1000);
