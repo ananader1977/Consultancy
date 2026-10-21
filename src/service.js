@@ -203,7 +203,7 @@ export function createService(ctx) {
     const info = q(`INSERT INTO invoices(number,booking_id,issued_at,supplier_name,supplier_address,supplier_trn,customer_name,customer_email,customer_mobile,
         description,appointment_text,net,vat_rate,vat,total,payment_ref,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'issued')`).run(
       `TMP-${crypto.randomUUID()}`, bookingId, ctx.now(), s.company_name, s.company_address, s.company_trn, b.customer_name, b.email, b.mobile,
-      `Consultation - ${b.service_name} (1 hour) - Ref ${b.reference}`, T.fmtRange(b.start_ts, b.end_ts), b.net, rate, b.vat, b.total, b.payment_ref,
+      `Session - ${b.service_name} (1 hour) - Ref ${b.reference}`, T.fmtRange(b.start_ts, b.end_ts), b.net, rate, b.vat, b.total, b.payment_ref,
     );
     const id = Number(info.lastInsertRowid);
     const number = `INV-${T.yearOf(ctx.now())}-${String(id).padStart(6, '0')}`;

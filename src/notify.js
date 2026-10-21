@@ -82,7 +82,7 @@ export function createNotifier(ctx) {
     filename: `${b.reference}.ics`,
     contentType: 'text/calendar; charset=utf-8',
     content: Buffer.from(
-      buildIcs([{ uid: `${b.reference}@consultancy-operation`, start: b.start_ts, end: b.end_ts, summary: `${s.company_name}: ${b.service_name} consultation`, description: plain(b), location: b.service_kind === 'online' ? b.meeting_link || b.platform || 'Online' : s.company_address || 'Office' }], { name: s.company_name, alarmMinutes: 60, now: ctx.now(), method }),
+      buildIcs([{ uid: `${b.reference}@consultancy-operation`, start: b.start_ts, end: b.end_ts, summary: `${s.company_name}: ${b.service_name} session`, description: plain(b), location: b.service_kind === 'online' ? b.meeting_link || b.platform || 'Online' : s.company_address || 'Office' }], { name: s.company_name, alarmMinutes: 60, now: ctx.now(), method }),
     ),
   });
   const invoiceAttachment = (inv, creditNote = false) => ({
