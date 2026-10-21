@@ -238,7 +238,7 @@ export function registerRoutes(app, ctx) {
   app.post('/api/admin/bookings', admin, async (req, res) => {
     const body = await req.json();
     const r = await svc.adminCreateBooking(body, req.admin.email, { markPaid: body.markPaid === true });
-    res.json({ booking: svc.publicAdminBooking(r.booking), checkoutUrl: r.checkoutUrl }, 201);
+    res.json({ booking: svc.publicAdminBooking(r.booking), payUrl: r.payUrl }, 201);
   });
   app.patch('/api/admin/bookings/:id', admin, async (req, res) => res.json({ booking: svc.publicAdminBooking(svc.adminUpdateBooking(idParam(req), await req.json(), req.admin.email)) }));
   app.post('/api/admin/bookings/:id/reschedule', admin, async (req, res) => {

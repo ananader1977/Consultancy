@@ -498,9 +498,11 @@ export function createService(ctx) {
   }
 
   async function adminCreateBooking(input, actor, { markPaid = false } = {}) {
-    const { booking, checkoutUrl } = await createBooking(input, { actor, skipCheckout: markPaid });
-    if (markPaid) return { booking: await markPaidManually(booking.id, actor), checkoutUrl: null };
-    return { booking, checkoutUrl };
+    const { booking } = await createBooking(input, { actor, skipCheckout: true });
+    if (markPaid) return { booking: await markPaidManually(booking.id, actor), payUrl: null };
+    // not paid yet: send the client the payment link right away (slot held for payment_link_hours)
+    const r = sendPaymentLink(booking.id, actor);
+    return { booking: r.booking, payUrl: r.payUrl };
   }
 
   // ---- slots (admin) ---------------------------------------------------------------------

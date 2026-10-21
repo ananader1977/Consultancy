@@ -476,3 +476,18 @@ describe('payment links', () => {
     app.clock.advance(-11 * 60000);
   });
 });
+
+describe('admin-created unpaid booking', () => {
+  let app;
+  before(async () => { app = await startTestApp(); await app.login(); });
+  after(() => app.close());
+  test('sends the payment link to the client email and WhatsApp automatically', async () => {
+    const r = await app.call('POST', '/api/admin/bookings', { name: 'Admin Made', mobile: '+971501112222', email: 'adminmade@example.com', serviceId: 1, platform: 'Zoom', slotId: app.slot(2, 10).id }, { admin: true });
+    assert.equal(r.status, 201);
+    assert.match(r.body.payUrl, /\/pay\.html\?ref=/);
+    await app.ctx.flush();
+    const msgs = app.ctx.db.prepare('SELECT * FROM outbox WHERE booking_id=?').all(r.body.booking.id);
+    assert.ok(msgs.some((m) => m.to_addr === 'adminmade@example.com' && /Payment link/.test(m.subject)));
+    assert.ok(msgs.some((m) => m.channel === 'whatsapp' && m.subject === 'payment_link'));
+  });
+});

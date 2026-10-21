@@ -208,7 +208,7 @@ async function newBooking(slot) {
   const cal = slot ? [slot] : (await A('GET', `/calendar?from=${dateKey(Math.max(S.cfg.today, Date.now()))}&to=${dateKey(S.cfg.today + 28 * DAY)}`)).slots.filter((s) => !s.booking && !s.blocked && s.start > Date.now());
   const f = h('form', { onsubmit: async (e) => { e.preventDefault(); const v = Object.fromEntries(new FormData(e.target)); v.markPaid = v.markPaid === 'on'; v.serviceId = Number(v.serviceId); v.slotId = Number(v.slotId);
     const svc = S.cfg.services.find((x) => x.id === v.serviceId); if (svc?.kind !== 'online') delete v.platform;
-    if (await run(() => A('POST', '/bookings', v), 'Booking created')) { dlg.close(); refresh(); } } },
+    const r = await run(() => A('POST', '/bookings', v)); if (r) { toast(r.payUrl ? 'Booking created – payment link sent to the client' : 'Booking created and confirmed', 6000); if (r.payUrl) { try { await navigator.clipboard.writeText(r.payUrl); } catch { /* clipboard blocked */ } } dlg.close(); refresh(); } } },
     h('label', {}, 'Slot'), h('select', { name: 'slotId' }, cal.map((s) => h('option', { value: s.id }, `${dow(s.start)} ${dayLabel(s.start)} ${fmtTime(s.start)}`))),
     h('label', {}, 'Service'), h('select', { name: 'serviceId' }, S.cfg.services.map((x) => h('option', { value: x.id }, `${x.name} – ${money(x.total)}`))),
     h('label', {}, 'Platform (online only)'), h('select', { name: 'platform' }, S.cfg.platforms.map((p) => h('option', {}, p))),
