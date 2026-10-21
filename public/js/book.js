@@ -71,6 +71,9 @@ function render() {
       h('button', { class: 'btn block', id: 'go', type: 'submit', disabled: !S.slot }, `${T.continuePay}${svc ? ' · ' + money(svc.total) : ''}`)));
 
   const keep = app.querySelector('#f') ? Object.fromEntries(new FormData(app.querySelector('#f'))) : {};
+  // keep the page exactly where the user is: no jump to the top when a day, time or service is picked
+  const y = window.scrollY, pillsX = app.querySelector('.pills')?.scrollLeft ?? null;
+  app.style.minHeight = `${app.offsetHeight}px`;
   app.replaceChildren(
     h('h1', {}, T.bookTitle),
     h('p', { class: 'muted' }, T.intro(cfg.workStart, cfg.workEnd, cfg.lockMinutes)),
@@ -82,8 +85,11 @@ function render() {
     h('section', { class: 'card' }, h('h2', {}, T.yourDetails), form),
     cfg.paymentProvider === 'mock' ? h('div', { class: 'alert' }, T.demoMode) : null);
   for (const [k, v] of Object.entries(keep)) { const i = app.querySelector(`#f [name="${k}"]`); if (!i || !v) continue; if (i.type === 'checkbox') i.checked = true; else i.value = v; }
+  if (pillsX !== null) app.querySelector('.pills').scrollLeft = pillsX;
+  window.scrollTo({ top: y, left: 0, behavior: 'instant' });
+  app.style.minHeight = '';
 }
-function pick(s) { S.slot = s; render(); $('#f').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+function pick(s) { S.slot = s; render(); }
 
 async function submit(ev) {
   ev.preventDefault();
