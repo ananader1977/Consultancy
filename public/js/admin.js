@@ -177,6 +177,12 @@ async function detail(id) {
   const save = () => A('PATCH', `/bookings/${id}`, { customer_name: name.value, mobile: mobile.value, email: email.value.trim(), meeting_link: link.value, admin_notes: notes.value });
   const btns = [h('button', { class: 'btn', onclick: async () => { if (await run(save, 'Saved')) refresh(); } }, 'Save changes')];
   if (['confirmed', 'pending'].includes(b.status)) btns.push(h('button', { class: 'btn alt', onclick: () => reschedulePicker(b) }, 'Reschedule'));
+  if (['pending', 'confirmed', 'refund_requested'].includes(b.status)) btns.push(h('button', { class: 'btn wa', onclick: async () => {
+    const w = window.open('about:blank', '_blank'); // open now so the browser does not block it
+    const r = await run(async () => { await save(); return A('POST', `/bookings/${id}/whatsapp`, {}); });
+    if (r && w) w.location.href = r.url; else if (r) location.href = r.url; else w?.close();
+    if (r) refresh();
+  } }, b.status === 'pending' ? 'Send link by WhatsApp' : 'WhatsApp client'));
   if (b.status === 'pending') btns.push(h('button', { class: 'btn', onclick: async () => { const r = await run(async () => { await save(); return A('POST', `/bookings/${id}/payment-link`, {}); }); if (r) { toast(`Payment link ready (valid until ${fmtStamp(r.booking.lock_expires)}, copied). ${deliveryText(r.delivery)}`, 12000); try { await navigator.clipboard.writeText(r.payUrl); } catch { /* clipboard blocked */ } refresh(); } } }, 'Send payment link'));
   if (b.status === 'pending') btns.push(h('button', { class: 'btn ok', onclick: async () => { if (await run(() => A('POST', `/bookings/${id}/mark-paid`, {}), 'Marked paid')) { dlg.close(); refresh(); } } }, 'Mark paid'), h('button', { class: 'btn danger', onclick: async () => { if (await run(() => A('POST', `/bookings/${id}/cancel`, {}), 'Cancelled')) { dlg.close(); refresh(); } } }, 'Cancel'));
   if (b.status === 'refund_requested') btns.push(h('button', { class: 'btn ok', onclick: () => approve(b) }, 'Approve refund'), h('button', { class: 'btn danger', onclick: () => reject(b) }, 'Reject'));

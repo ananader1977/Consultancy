@@ -208,6 +208,30 @@ export function createService(ctx) {
     return { booking: nb, payUrl: url, delivery };
   }
 
+  /** Admin: a wa.me link that opens WhatsApp (from the admin's own phone) with a ready message to the client. */
+  async function whatsappLink(id, actor) {
+    let b = mustBooking(id);
+    expireDue();
+    b = bookingById(id);
+    const when = T.fmtRange(b.start_ts, b.end_ts);
+    const amount = `AED ${T.money(b.total)}`;
+    let en, ar;
+    if (b.status === 'pending' && b.payment_status === 'unpaid') {
+      const { payUrl } = await sendPaymentLink(id, actor);
+      en = `Dear ${b.customer_name}, your session ${b.reference} on ${when} is reserved. Please complete the payment (${amount}) using this link: ${payUrl}`;
+      ar = `عزيزي/عزيزتي ${b.customer_name}، تم حجز جلستك ${b.reference} بتاريخ ${when}. يرجى إكمال الدفع (${amount}) عبر هذا الرابط: ${payUrl}`;
+    } else if (['confirmed', 'refund_requested'].includes(b.status)) {
+      const manage = `${ctx.config.baseUrl}/manage.html?ref=${encodeURIComponent(b.reference)}&t=${b.manage_token}`;
+      en = `Dear ${b.customer_name}, your session is confirmed. Reference: ${b.reference}, ${when}, ${b.service_name}${b.platform ? ` (${b.platform})` : ''}. View or change your booking: ${manage}`;
+      ar = `عزيزي/عزيزتي ${b.customer_name}، تم تأكيد جلستك. رقم الحجز: ${b.reference}، ${when}. لعرض حجزك أو تغييره: ${manage}`;
+    } else {
+      en = `Dear ${b.customer_name}, regarding your booking ${b.reference}:`;
+      ar = `عزيزي/عزيزتي ${b.customer_name}، بخصوص حجزك ${b.reference}:`;
+    }
+    audit(actor, 'whatsapp.manual', b.id);
+    return { url: `https://wa.me/${whatsappNumber(b.mobile)}?text=${encodeURIComponent(`${ar}\n\n${en}`)}` };
+  }
+
   // ---- payment handling ----------------------------------------------------------------
   /** Sync part: confirm the booking and issue the invoice. Runs inside a transaction. */
   function applyPayment(bookingId, paymentRef) {
@@ -671,6 +695,6 @@ export function createService(ctx) {
     breakdown, generateSlots, expireDue, listAvailableSlots, createBooking, handlePayment, syncPayment, bookingByToken, lookup, manageView,
     invoiceToken, invoiceFull, reschedule, requestRefund, approveRefund, rejectRefund, adminUpdateBooking, cancelPending, markPaidManually,
     adminCreateBooking, setSlotBlocked, adminCalendar, listBookings, dashboard, upcomingWithin, runReminders, updateSettings, upsertService,
-    feedEvents, bookingById, publicAdminBooking, audit, startPayment, sendPaymentLink, payLinkUrl,
+    feedEvents, bookingById, publicAdminBooking, audit, startPayment, sendPaymentLink, payLinkUrl, whatsappLink,
   };
 }

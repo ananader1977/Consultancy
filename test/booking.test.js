@@ -491,3 +491,24 @@ describe('admin-created unpaid booking', () => {
     assert.ok(msgs.some((m) => m.channel === 'whatsapp' && m.subject === 'payment_link'));
   });
 });
+
+describe('manual WhatsApp from admin', () => {
+  let app;
+  before(async () => { app = await startTestApp(); await app.login(); });
+  after(() => app.close());
+  test('pending: wa.me link with the payment link; confirmed: with the manage link', async () => {
+    const b = await app.book(app.slot(2, 10).id, { mobile: '+971 50 987 6543' });
+    const id = app.dbBooking(b.body.reference).id;
+    const r = await app.call('POST', `/api/admin/bookings/${id}/whatsapp`, {}, { admin: true });
+    assert.equal(r.status, 200);
+    assert.match(r.body.url, /^https:\/\/wa\.me\/971509876543\?text=/);
+    const text = decodeURIComponent(r.body.url.split('text=')[1]);
+    assert.match(text, /pay\.html\?ref=/);
+    assert.match(text, /يرجى إكمال الدفع/);
+    assert.ok(app.dbBooking(b.body.reference).lock_expires > app.ctx.now() + 20 * HOUR, 'hold extended');
+    await app.pay(b);
+    const c = decodeURIComponent((await app.call('POST', `/api/admin/bookings/${id}/whatsapp`, {}, { admin: true })).body.url.split('text=')[1]);
+    assert.match(c, /confirmed/);
+    assert.match(c, /manage\.html\?ref=/);
+  });
+});

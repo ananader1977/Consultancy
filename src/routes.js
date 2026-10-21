@@ -251,6 +251,7 @@ export function registerRoutes(app, ctx) {
     const r = await svc.sendPaymentLink(idParam(req), req.admin.email);
     res.json({ booking: svc.publicAdminBooking(r.booking), payUrl: r.payUrl, delivery: r.delivery });
   });
+  app.post('/api/admin/bookings/:id/whatsapp', admin, async (req, res) => res.json(await svc.whatsappLink(idParam(req), req.admin.email)));
   app.post('/api/admin/bookings/:id/mark-paid', admin, async (req, res) => res.json({ booking: svc.publicAdminBooking(await svc.markPaidManually(idParam(req), req.admin.email)) }));
   app.post('/api/admin/bookings/:id/cancel', admin, (req, res) => res.json({ booking: svc.publicAdminBooking(svc.cancelPending(idParam(req), req.admin.email)) }));
 
