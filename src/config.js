@@ -34,6 +34,7 @@ export function loadConfig(env = process.env) {
       templateConfirm: env.WHATSAPP_TEMPLATE_CONFIRMATION || 'booking_confirmation',
       templateUpdate: env.WHATSAPP_TEMPLATE_UPDATE || 'booking_update',
       templatePayment: env.WHATSAPP_TEMPLATE_PAYMENT || 'payment_link',
+      logWhenOff: env.WHATSAPP_LOG_UNCONFIGURED === 'true',
       language: env.WHATSAPP_TEMPLATE_LANGUAGE || 'en',
       apiVersion: env.WHATSAPP_API_VERSION || 'v20.0',
       baseUrl: env.WHATSAPP_API_BASE || 'https://graph.facebook.com',

@@ -139,7 +139,7 @@ const VIEWS = {
       h('div', { class: 'card' }, h('h2', {}, 'Integrations'), h('dl', { class: 'kv' },
         h('dt', {}, 'Payments'), h('dd', {}, r.provider === 'stripe' ? 'Stripe (live cards)' : 'Demo (simulated) – set PAYMENT_PROVIDER=stripe'),
         h('dt', {}, 'Email (SMTP)'), h('dd', {}, r.smtpConfigured ? 'Configured' : 'Not configured – emails are only logged', ' ', h('button', { class: 'btn alt sm', onclick: () => run(async () => { const t = await A('POST', '/test-email', {}); toast(t.status === 'sent' ? `Test email sent to ${t.to}` : `Not sent to ${t.to}: ${t.error}`, 6000); }) }, 'Send test email')),
-        h('dt', {}, 'WhatsApp'), h('dd', {}, r.whatsappConfigured ? 'Configured' : 'Not configured – messages are only logged'),
+        h('dt', {}, 'WhatsApp'), h('dd', {}, r.whatsappConfigured ? 'Automatic (Business API)' : 'Manual – use the WhatsApp buttons in each booking'),
         h('dt', {}, 'Calendar feed'), h('dd', {}, h('input', { readonly: true, value: r.feedUrl, onfocus: (e) => e.target.select() }), h('div', { class: 'small muted' }, 'Subscribe to this URL in Zoho Calendar, Outlook or Google Calendar (confirmed bookings, with 2h reminder).')))));
   },
 
@@ -154,7 +154,7 @@ const VIEWS = {
 
   async messages(el) {
     const r = await A('GET', '/outbox?limit=150');
-    clear(el).append(h('p', { class: 'muted' }, 'Every email and WhatsApp message the system sent (or logged, if not configured).'), h('div', { class: 'tablewrap' }, h('table', {}, h('thead', {}, h('tr', {}, ['When', 'Channel', 'To', 'Subject', 'Status'].map((x) => h('th', {}, x)))),
+    clear(el).append(h('p', { class: 'muted' }, 'Every email the system sent (and automatic WhatsApp messages, if the WhatsApp Business API is set up).'), h('div', { class: 'tablewrap' }, h('table', {}, h('thead', {}, h('tr', {}, ['When', 'Channel', 'To', 'Subject', 'Status'].map((x) => h('th', {}, x)))),
       h('tbody', {}, r.messages.map((m) => h('tr', {}, h('td', {}, fmtStamp(m.ts)), h('td', {}, m.channel), h('td', {}, m.to_addr), h('td', {}, m.subject), h('td', {}, badge(m.status === 'sent' ? 'confirmed' : m.status === 'failed' ? 'cancelled' : 'pending'), m.error ? h('div', { class: 'small muted' }, m.error) : null)))))));
   },
 };

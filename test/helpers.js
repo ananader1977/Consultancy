@@ -18,6 +18,7 @@ export async function startTestApp(overrides = {}, { frozenAt = START } = {}) {
     adminPassword: 'TestPass12345',
     ...overrides,
   };
+  config.whatsapp = { ...config.whatsapp, logWhenOff: true, ...(overrides.whatsapp || {}) };
   const ctx = createContext({ config, now: clock.now });
   const app = createWebApp(ctx);
   const server = app.server();

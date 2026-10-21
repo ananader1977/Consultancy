@@ -36,7 +36,9 @@ export function createNotifier(ctx) {
     const template = kind === 'confirmation' ? w.templateConfirm : kind === 'payment' ? w.templatePayment : w.templateUpdate;
     const params = [booking.customer_name, booking.reference, fmtRange(booking.start_ts, booking.end_ts), booking.service_name, ...extra];
     const summary = `[template:${template}] ${params.join(' | ')}`;
-    if (!w.token || !w.phoneNumberId) return logRow('whatsapp', to, template, summary, 'logged', 'WhatsApp not configured', booking.id);
+    if (!w.token || !w.phoneNumberId) { // no WhatsApp Business API: messages are sent manually from admin
+      return w.logWhenOff ? logRow('whatsapp', to, template, summary, 'logged', 'WhatsApp not configured', booking.id) : null;
+    }
     try {
       const res = await fetch(`${w.baseUrl}/${w.apiVersion}/${w.phoneNumberId}/messages`, {
         method: 'POST',

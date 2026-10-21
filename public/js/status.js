@@ -36,6 +36,7 @@ async function load() {
     const box = h('input', { readonly: true, value: full, onfocus: (e) => e.target.select(), 'aria-label': T.saveTitle });
     kids.push(h('div', { class: 'card save-link' }, h('h2', {}, T.saveTitle), h('p', { class: 'muted' }, b.hasEmail ? T.saveText : T.saveTextNoEmail),
       h('div', { class: 'row' }, box), h('p', { class: 'row' }, copyBtn,
+        h('a', { class: 'btn wa sm', href: `https://wa.me/?text=${encodeURIComponent(T.waText(b.reference, full))}`, target: '_blank', rel: 'noopener' }, T.shareWa),
         navigator.share ? h('button', { class: 'btn alt sm', type: 'button', onclick: () => navigator.share({ title: T.yourBooking, url: full }).catch(() => {}) }, T.share) : null)));
   }
   app.replaceChildren(...kids);

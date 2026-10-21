@@ -512,3 +512,14 @@ describe('manual WhatsApp from admin', () => {
     assert.match(c, /manage\.html\?ref=/);
   });
 });
+
+describe('no WhatsApp API', () => {
+  test('nothing is logged for WhatsApp when the API is not set up', async () => {
+    const app = await startTestApp({ whatsapp: { logWhenOff: false } });
+    try {
+      const b = await app.book(app.slot(2, 10).id);
+      await app.pay(b);
+      assert.equal(app.ctx.db.prepare("SELECT COUNT(*) n FROM outbox WHERE channel='whatsapp'").get().n, 0);
+    } finally { app.close(); }
+  });
+});
