@@ -420,8 +420,8 @@ describe('prices include VAT and the not-medical notice', () => {
     const en = (await app.call('GET', '/api/terms')).body.text;
     const ar = (await app.call('GET', '/api/terms?lang=ar')).body.text;
     assert.match(en, /include VAT at 5%/);
-    assert.match(en, /not a medical service/);
-    assert.match(ar, /ليست خدمة طبية/);
+    assert.match(en, /not linked to psychiatry/);
+    assert.match(ar, /لا ترتبط دراساتنا أو نتائجها بالطب النفسي/);
     assert.match(ar, /وتشمل ضريبة القيمة المضافة/);
     assert.doesNotMatch(en + ar, /999/);
     const cfg = (await app.call('GET', '/api/config')).body;
