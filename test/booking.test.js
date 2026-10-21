@@ -12,8 +12,8 @@ describe('slots and pricing', () => {
     const r = await app.call('GET', '/api/config');
     assert.equal(r.status, 200);
     const [online, offline] = r.body.services;
-    assert.deepEqual([online.name, online.price, online.vat, online.total], ['Online', 500, 25, 525]);
-    assert.deepEqual([offline.name, offline.price, offline.vat, offline.total], ['Offline', 1000, 50, 1050]);
+    assert.deepEqual([online.name, online.price, online.vat, online.total], ['Online', 300, 14.29, 300]);
+    assert.deepEqual([offline.name, offline.price, offline.vat, offline.total], ['Offline', 500, 23.81, 500]);
   });
 
   test('slots are 1 hour, 10:00-18:00, no lunch slot at 13:00, never on Sunday', async () => {
@@ -69,7 +69,7 @@ describe('creating bookings', () => {
     assert.equal((await app.book(app.slot(1, 11).id, { platform: 'Microsoft Teams' })).status, 201);
     const off = await app.book(app.slot(1, 12).id, { serviceId: 2, platform: '' });
     assert.equal(off.status, 201);
-    assert.equal(off.body.total, 1050);
+    assert.equal(off.body.total, 500);
   });
 
   test('booking references are auto-generated and never duplicate', async () => {
@@ -207,7 +207,7 @@ describe('payment, invoice and notifications', () => {
     assert.equal(st.paymentStatus, 'paid');
     assert.equal(st.invoiceNumber, 'INV-2026-000001');
     const inv = app.ctx.db.prepare('SELECT * FROM invoices').get();
-    assert.deepEqual([inv.net, inv.vat, inv.total, inv.vat_rate], [500, 25, 525, 5]);
+    assert.deepEqual([inv.net, inv.vat, inv.total, inv.vat_rate], [285.71, 14.29, 300, 5]);
     assert.equal(inv.supplier_trn, '100123456700003');
     const b2 = await app.book(app.slot(2, 11).id, { email: 'two@example.com' });
     await app.pay(b2);
@@ -405,5 +405,21 @@ describe('bookings without an email address', () => {
     assert.equal((await app.call('PATCH', `/api/admin/bookings/${id}`, { email: '' }, { admin: true })).status, 200);
     const c = await app.call('POST', '/api/admin/bookings', { name: 'Walk In', mobile: '+971501112233', serviceId: 1, platform: 'Zoom', slotId: app.slot(2, 11).id, markPaid: true }, { admin: true });
     assert.equal(c.status, 201, 'admin can create a booking without email');
+  });
+});
+
+describe('prices include VAT and the not-medical notice', () => {
+  let app;
+  before(async () => { app = await startTestApp(); });
+  after(() => app.close());
+  test('terms state prices include VAT and the service is not medical', async () => {
+    const en = (await app.call('GET', '/api/terms')).body.text;
+    const ar = (await app.call('GET', '/api/terms?lang=ar')).body.text;
+    assert.match(en, /include VAT at 5%/);
+    assert.match(en, /not a medical service/);
+    assert.match(ar, /ليست خدمة طبية/);
+    assert.match(ar, /وتشمل ضريبة القيمة المضافة/);
+    const cfg = (await app.call('GET', '/api/config')).body;
+    assert.equal(cfg.pricesIncludeVat, true);
   });
 });

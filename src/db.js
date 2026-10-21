@@ -13,7 +13,7 @@ export const SETTING_DEFAULTS = {
   contact_email: 'info@lamaalsafadi.ae',
   facebook: 'lama_alsafadi',
   vat_rate: '5',
-  prices_include_vat: '0',
+  prices_include_vat: '1',
   work_start: '10',
   work_end: '18',
   lunch_start: '13',
@@ -26,9 +26,9 @@ export const SETTING_DEFAULTS = {
   teams_link: '',
   reminder_hours: '2',
   closed_days: '0',
-  terms_text: "Terms & Conditions for Consultation Bookings\n\n1. Booking and payment\nA booking is confirmed only after full payment by card. Your chosen time is held for 10 minutes while you pay; if payment is not completed, the time is released automatically.\n\n2. Prices and VAT\nPrices are in UAE Dirhams (AED). VAT at 5% is added to the listed price. A tax invoice is issued by email after payment.\n\n3. Sessions\nEach session lasts 1 hour and takes place Monday to Saturday between 9:00 AM and 6:00 PM (Dubai time). Online sessions are held on Zoom or Microsoft Teams; the link is sent by email. Office sessions take place at the address shown in your confirmation.\n\n4. Changing your appointment\nYou can change your appointment free of charge up to 24 hours before it, using \"Manage booking\". Each booking can be changed up to 2 times within 30 calendar days; after that, no further changes are possible. Within 24 hours of the appointment, please contact us; changes are at our discretion.\n\n5. Missed appointments\nIf you cannot attend, please change your appointment in time using \"Manage booking\". An appointment cannot be changed after its start time.\n\n6. Late arrival\nIf you join or arrive late, the session still ends at the scheduled time.\n\n7. Your information\nWe use your name, mobile number and email only to manage your booking and to send confirmations and reminders by email and WhatsApp.\n\n8. Nature of the service\nConsultations are not an emergency service. If you or someone else is in immediate danger, call 999 (UAE emergency services).\n\n9. Contact\nFor any question about your booking, call or WhatsApp +971 52 806 6121, email info@lamaalsafadi.ae, or message us on Facebook (lama_alsafadi).",
+  terms_text: "Terms & Conditions for Consultation Bookings\n\n1. Booking and payment\nA booking is confirmed only after full payment by card. Your chosen time is held for 10 minutes while you pay; if payment is not completed, the time is released automatically.\n\n2. Prices and VAT\nPrices are in UAE Dirhams (AED) and include VAT at 5%. A tax invoice is issued after payment.\n\n3. Sessions\nEach session lasts 1 hour and takes place Monday to Saturday between 9:00 AM and 6:00 PM (Dubai time). Online sessions are held on Zoom or Microsoft Teams; the link is sent by email. Office sessions take place at the address shown in your confirmation.\n\n4. Changing your appointment\nYou can change your appointment free of charge up to 24 hours before it, using \"Manage booking\". Each booking can be changed up to 2 times within 30 calendar days; after that, no further changes are possible. Within 24 hours of the appointment, please contact us; changes are at our discretion.\n\n5. Missed appointments\nIf you cannot attend, please change your appointment in time using \"Manage booking\". An appointment cannot be changed after its start time.\n\n6. Late arrival\nIf you join or arrive late, the session still ends at the scheduled time.\n\n7. Your information\nWe use your name, mobile number and email only to manage your booking and to send confirmations and reminders by email and WhatsApp.\n\n8. Nature of the service\nThis service is not a medical service and does not replace diagnosis or treatment by a doctor or licensed healthcare professional. It provides support and guidance only. Consultations are not an emergency service. If you or someone else is in immediate danger, call 999 (UAE emergency services).\n\n9. Contact\nFor any question about your booking, call or WhatsApp +971 52 806 6121, email info@lamaalsafadi.ae, or message us on Facebook (lama_alsafadi).",
   company_name_ar: "لما الصفدي لدراسات العلوم الإجتماعية",
-  terms_text_ar: "الشروط والأحكام لحجز الاستشارات\n\n1. الحجز والدفع\nلا يتم تأكيد الحجز إلا بعد دفع المبلغ كاملاً بالبطاقة. يُحجز الموعد الذي اخترته لمدة 10 دقائق أثناء الدفع، وإذا لم يكتمل الدفع يُلغى حجز الموعد تلقائياً.\n\n2. الأسعار وضريبة القيمة المضافة\nالأسعار بالدرهم الإماراتي، وتُضاف ضريبة القيمة المضافة بنسبة 5% إلى السعر المعلن. تُرسل الفاتورة الضريبية إلى بريدك الإلكتروني بعد الدفع.\n\n3. الجلسات\nمدة كل جلسة ساعة واحدة، من الاثنين إلى السبت بين الساعة 9:00 صباحاً و6:00 مساءً بتوقيت دبي. تُعقد الجلسات عن بُعد عبر Zoom أو Microsoft Teams ويُرسل الرابط بالبريد الإلكتروني، وتُعقد الجلسات الحضورية في عنوان المكتب الموضح في رسالة التأكيد.\n\n4. تغيير الموعد\nيمكنك تغيير موعدك مجاناً حتى 24 ساعة قبل الموعد من خلال صفحة \"إدارة الحجز\". يمكن تغيير كل حجز مرتين كحد أقصى خلال 30 يوماً تقويمياً، ولا يمكن إجراء أي تغيير بعد ذلك. وخلال الـ 24 ساعة السابقة للموعد يرجى التواصل معنا، ويخضع أي تغيير لتقديرنا.\n\n5. عدم الحضور\nإذا لم تتمكن من الحضور، يرجى تغيير موعدك في الوقت المناسب من خلال صفحة \"إدارة الحجز\". لا يمكن تغيير الموعد بعد بدء وقته.\n\n6. التأخر\nفي حال التأخر عن الانضمام أو الحضور، تنتهي الجلسة في وقتها المحدد.\n\n7. بياناتك\nنستخدم اسمك ورقم جوالك وبريدك الإلكتروني فقط لإدارة حجزك وإرسال رسائل التأكيد والتذكير عبر البريد الإلكتروني وواتساب.\n\n8. طبيعة الخدمة\nالاستشارات ليست خدمة طوارئ. إذا كنت أنت أو أي شخص آخر في خطر مباشر، فاتصل بالرقم 999 (خدمات الطوارئ في الإمارات).\n\n9. التواصل\nلأي استفسار بخصوص حجزك، اتصل بنا أو راسلنا عبر واتساب على ⁦+971 52 806 6121⁩، أو عبر البريد الإلكتروني info@lamaalsafadi.ae، أو على فيسبوك (lama_alsafadi)."
+  terms_text_ar: "الشروط والأحكام لحجز الاستشارات\n\n1. الحجز والدفع\nلا يتم تأكيد الحجز إلا بعد دفع المبلغ كاملاً بالبطاقة. يُحجز الموعد الذي اخترته لمدة 10 دقائق أثناء الدفع، وإذا لم يكتمل الدفع يُلغى حجز الموعد تلقائياً.\n\n2. الأسعار وضريبة القيمة المضافة\nالأسعار بالدرهم الإماراتي وتشمل ضريبة القيمة المضافة بنسبة 5%. تصدر الفاتورة الضريبية بعد الدفع.\n\n3. الجلسات\nمدة كل جلسة ساعة واحدة، من الاثنين إلى السبت بين الساعة 9:00 صباحاً و6:00 مساءً بتوقيت دبي. تُعقد الجلسات عن بُعد عبر Zoom أو Microsoft Teams ويُرسل الرابط بالبريد الإلكتروني، وتُعقد الجلسات الحضورية في عنوان المكتب الموضح في رسالة التأكيد.\n\n4. تغيير الموعد\nيمكنك تغيير موعدك مجاناً حتى 24 ساعة قبل الموعد من خلال صفحة \"إدارة الحجز\". يمكن تغيير كل حجز مرتين كحد أقصى خلال 30 يوماً تقويمياً، ولا يمكن إجراء أي تغيير بعد ذلك. وخلال الـ 24 ساعة السابقة للموعد يرجى التواصل معنا، ويخضع أي تغيير لتقديرنا.\n\n5. عدم الحضور\nإذا لم تتمكن من الحضور، يرجى تغيير موعدك في الوقت المناسب من خلال صفحة \"إدارة الحجز\". لا يمكن تغيير الموعد بعد بدء وقته.\n\n6. التأخر\nفي حال التأخر عن الانضمام أو الحضور، تنتهي الجلسة في وقتها المحدد.\n\n7. بياناتك\nنستخدم اسمك ورقم جوالك وبريدك الإلكتروني فقط لإدارة حجزك وإرسال رسائل التأكيد والتذكير عبر البريد الإلكتروني وواتساب.\n\n8. طبيعة الخدمة\nهذه الخدمة ليست خدمة طبية، ولا تُغني عن التشخيص أو العلاج لدى طبيب أو أخصائي رعاية صحية مرخّص، وهي للدعم والإرشاد فقط. الاستشارات ليست خدمة طوارئ. إذا كنت أنت أو أي شخص آخر في خطر مباشر، فاتصل بالرقم 999 (خدمات الطوارئ في الإمارات).\n\n9. التواصل\nلأي استفسار بخصوص حجزك، اتصل بنا أو راسلنا عبر واتساب على ⁦+971 52 806 6121⁩، أو عبر البريد الإلكتروني info@lamaalsafadi.ae، أو على فيسبوك (lama_alsafadi)."
 };
 
 const SCHEMA = `
@@ -185,6 +185,24 @@ export function openDb(dbPath) {
     const fresh = SETTING_DEFAULTS[key].match(key === 'terms_text' ? /4\. Changing your appointment\n[\s\S]*?(?=\n\n6\. )/ : /4\. تغيير الموعد\n[\s\S]*?(?=\n\n6\. )/)[0];
     if (row && re.test(row.value)) db.prepare('UPDATE settings SET value=? WHERE key=?').run(row.value.replace(re, fresh), key);
   }
+  // one-time (Oct 2026): prices include VAT, online 300 / office 500; terms say prices include VAT and the service is not medical
+  if (!db.prepare("SELECT 1 FROM settings WHERE key='_m_prices_2'").get()) {
+    db.prepare("UPDATE settings SET value='1' WHERE key='prices_include_vat'").run();
+    db.prepare("UPDATE services SET price=300 WHERE kind='online'").run();
+    db.prepare("UPDATE services SET price=500 WHERE kind='offline'").run();
+    db.prepare("INSERT INTO settings(key,value) VALUES('_m_prices_2','1')").run();
+  }
+  for (const [oldText, newText] of [
+    [JSON.parse('"Prices are in UAE Dirhams (AED). VAT at 5% is added to the listed price. A tax invoice is issued by email after payment."'), JSON.parse('"Prices are in UAE Dirhams (AED) and include VAT at 5%. A tax invoice is issued after payment."')],
+    [JSON.parse('"8. Nature of the service\\nConsultations are not an emergency service."'), JSON.parse('"8. Nature of the service\\nThis service is not a medical service and does not replace diagnosis or treatment by a doctor or licensed healthcare professional. It provides support and guidance only. Consultations are not an emergency service."')],
+    [JSON.parse('"الأسعار بالدرهم الإماراتي، وتُضاف ضريبة القيمة المضافة بنسبة 5% إلى السعر المعلن. تُرسل الفاتورة الضريبية إلى بريدك الإلكتروني بعد الدفع."'), JSON.parse('"الأسعار بالدرهم الإماراتي وتشمل ضريبة القيمة المضافة بنسبة 5%. تصدر الفاتورة الضريبية بعد الدفع."')],
+    [JSON.parse('"8. طبيعة الخدمة\\nالاستشارات ليست خدمة طوارئ."'), JSON.parse('"8. طبيعة الخدمة\\nهذه الخدمة ليست خدمة طبية، ولا تُغني عن التشخيص أو العلاج لدى طبيب أو أخصائي رعاية صحية مرخّص، وهي للدعم والإرشاد فقط. الاستشارات ليست خدمة طوارئ."')],
+  ]) {
+    for (const key of ['terms_text', 'terms_text_ar']) {
+      const row = db.prepare('SELECT value FROM settings WHERE key=?').get(key);
+      if (row && row.value.includes(oldText)) db.prepare('UPDATE settings SET value=? WHERE key=?').run(row.value.replace(oldText, newText), key);
+    }
+  }
   db.prepare("UPDATE settings SET value=? WHERE key='company_name' AND value IN ('Consultancy Operation', 'Lama Al Safadi Social & Family Consultancy')").run(SETTING_DEFAULTS.company_name);
   db.prepare("UPDATE settings SET value=? WHERE key='company_name_ar' AND value=?").run(SETTING_DEFAULTS.company_name_ar, 'لمى الصفدي للاستشارات الإجتماعية والأسرية');
   ins.run('feed_key', crypto.randomBytes(18).toString('base64url'));
@@ -192,8 +210,8 @@ export function openDb(dbPath) {
   const svc = db.prepare('SELECT COUNT(*) AS n FROM services').get().n;
   if (svc === 0) {
     const s = db.prepare('INSERT INTO services(name,kind,description,price,active) VALUES(?,?,?,?,1)');
-    s.run('Online', 'online', 'One-hour consultation by Zoom or Microsoft Teams', 500);
-    s.run('Offline', 'offline', 'One-hour consultation at our office', 1000);
+    s.run('Online', 'online', 'One-hour consultation by Zoom or Microsoft Teams', 300);
+    s.run('Offline', 'offline', 'One-hour consultation at our office', 500);
   }
   return db;
 }

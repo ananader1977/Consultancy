@@ -43,7 +43,7 @@ describe('admin operations', () => {
     const r = await A('PUT', '/api/admin/services/1', { name: 'Online', price: 600, kind: 'online', active: true });
     assert.equal(r.status, 200);
     const b = await app.book(app.slot(1, 10).id);
-    assert.equal(b.body.total, 630);
+    assert.equal(b.body.total, 600);
   });
 
   test('dashboard counts confirmed bookings', async () => {
@@ -302,7 +302,7 @@ describe('dirham sign', () => {
     const b = await app.book(app.slot(2, 10).id, { email: 'sym@example.com' });
     await app.pay(b);
     const m = app.ctx.db.prepare("SELECT * FROM outbox WHERE to_addr='sym@example.com'").get();
-    assert.match(m.body, /Amount: AED 525\.00/);
+    assert.match(m.body, /Amount: AED 300\.00/);
     assert.doesNotMatch(m.body, /&nbsp;|<img/);
   });
 });

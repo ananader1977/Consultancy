@@ -34,7 +34,6 @@ function render() {
   const svcCards = cfg.services.map((s) => h('label', {},
     h('input', { type: 'radio', name: 'svc', value: s.id, checked: s.id === S.svc, onchange: () => { S.svc = s.id; render(); } }),
     h('div', {}, h('b', {}, svcName(s)), h('div', { class: 'price' }, money(s.total)),
-      h('div', { class: 'small muted' }, cfg.pricesIncludeVat ? T.inclVat(cfg.vatRate) : T.plusVat(money(s.price), cfg.vatRate)),
       h('div', { class: 'small' }, s.kind === 'online' ? T.onlineDesc : T.offlineDesc))));
   const svc = cfg.services.find((s) => s.id === S.svc);
 
@@ -65,6 +64,7 @@ function render() {
     svc?.kind === 'online' ? [h('label', { for: 'platform' }, T.platform), h('select', { id: 'platform', name: 'platform' }, cfg.platforms.map((p) => h('option', { value: p }, p)))] : null,
     h('label', { class: 'terms' }, h('input', { type: 'checkbox', id: 'terms', name: 'acceptTerms', required: true }),
       h('span', {}, T.termsA, h('a', { href: '/terms.html', target: '_blank', rel: 'noopener' }, T.termsLink), T.termsB)),
+    h('p', { class: 'notice', role: 'note' }, h('b', {}, T.notMedicalTitle), ' ', T.notMedical),
     h('div', { id: 'err', class: 'alert bad hide', role: 'alert' }),
     h('div', { class: 'sticky' },
       h('div', { class: 'small', id: 'sum' }, S.slot ? `${svcName(svc)} · ${dow(S.slot.start)} ${dayLabel(S.slot.start)} ${timeRange(S.slot.start, S.slot.end)} · ${ltr(money(svc.total))}` : T.chooseSlot),
