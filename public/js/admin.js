@@ -168,6 +168,7 @@ function bookingTable(list, withRefundActions) {
 async function approve(b) { if (confirm(`Refund AED ${Number(b.total).toFixed(2)} to ${b.customer_name} and cancel the booking?`) && await run(() => A('POST', `/bookings/${b.id}/refund/approve`, {}), 'Refund approved')) { dlg.close(); refresh(); } }
 async function reject(b) { if (await run(() => A('POST', `/bookings/${b.id}/refund/reject`, {}), 'Refund rejected')) { dlg.close(); refresh(); } }
 
+const deliveryText = (d) => !d ? '' : d.status === 'sent' ? `Email sent to ${d.email}.` : d.status === 'none' ? 'No email on this booking (WhatsApp only).' : `EMAIL NOT SENT to ${d.email}: ${d.error || d.status}`;
 async function detail(id) {
   const r = await run(() => A('GET', `/bookings/${id}`)); if (!r) return;
   const b = r.booking;
@@ -175,7 +176,7 @@ async function detail(id) {
   const name = h('input', { value: b.customer_name }), mobile = h('input', { value: b.mobile }), email = h('input', { value: b.email });
   const btns = [h('button', { class: 'btn', onclick: async () => { if (await run(() => A('PATCH', `/bookings/${id}`, { customer_name: name.value, mobile: mobile.value, email: email.value, meeting_link: link.value, admin_notes: notes.value }), 'Saved')) refresh(); } }, 'Save changes')];
   if (['confirmed', 'pending'].includes(b.status)) btns.push(h('button', { class: 'btn alt', onclick: () => reschedulePicker(b) }, 'Reschedule'));
-  if (b.status === 'pending') btns.push(h('button', { class: 'btn', onclick: async () => { const r = await run(() => A('POST', `/bookings/${id}/payment-link`, {})); if (r) { toast(`Payment link sent to the client (valid until ${fmtStamp(r.booking.lock_expires)})`, 6000); try { await navigator.clipboard.writeText(r.payUrl); } catch { /* clipboard blocked */ } refresh(); } } }, 'Send payment link'));
+  if (b.status === 'pending') btns.push(h('button', { class: 'btn', onclick: async () => { const r = await run(() => A('POST', `/bookings/${id}/payment-link`, {})); if (r) { toast(`Payment link ready (valid until ${fmtStamp(r.booking.lock_expires)}, copied). ${deliveryText(r.delivery)}`, 12000); try { await navigator.clipboard.writeText(r.payUrl); } catch { /* clipboard blocked */ } refresh(); } } }, 'Send payment link'));
   if (b.status === 'pending') btns.push(h('button', { class: 'btn ok', onclick: async () => { if (await run(() => A('POST', `/bookings/${id}/mark-paid`, {}), 'Marked paid')) { dlg.close(); refresh(); } } }, 'Mark paid'), h('button', { class: 'btn danger', onclick: async () => { if (await run(() => A('POST', `/bookings/${id}/cancel`, {}), 'Cancelled')) { dlg.close(); refresh(); } } }, 'Cancel'));
   if (b.status === 'refund_requested') btns.push(h('button', { class: 'btn ok', onclick: () => approve(b) }, 'Approve refund'), h('button', { class: 'btn danger', onclick: () => reject(b) }, 'Reject'));
   if (b.status === 'confirmed') btns.push(h('button', { class: 'btn danger', onclick: () => approve(b) }, 'Refund & cancel'));
@@ -208,7 +209,7 @@ async function newBooking(slot) {
   const cal = slot ? [slot] : (await A('GET', `/calendar?from=${dateKey(Math.max(S.cfg.today, Date.now()))}&to=${dateKey(S.cfg.today + 28 * DAY)}`)).slots.filter((s) => !s.booking && !s.blocked && s.start > Date.now());
   const f = h('form', { onsubmit: async (e) => { e.preventDefault(); const v = Object.fromEntries(new FormData(e.target)); v.markPaid = v.markPaid === 'on'; v.serviceId = Number(v.serviceId); v.slotId = Number(v.slotId);
     const svc = S.cfg.services.find((x) => x.id === v.serviceId); if (svc?.kind !== 'online') delete v.platform;
-    const r = await run(() => A('POST', '/bookings', v)); if (r) { toast(r.payUrl ? 'Booking created – payment link sent to the client' : 'Booking created and confirmed', 6000); if (r.payUrl) { try { await navigator.clipboard.writeText(r.payUrl); } catch { /* clipboard blocked */ } } dlg.close(); refresh(); } } },
+    const r = await run(() => A('POST', '/bookings', v)); if (r) { toast(r.payUrl ? `Booking created – payment link copied. ${deliveryText(r.delivery)}` : 'Booking created and confirmed', 12000); if (r.payUrl) { try { await navigator.clipboard.writeText(r.payUrl); } catch { /* clipboard blocked */ } } dlg.close(); refresh(); } } },
     h('label', {}, 'Slot'), h('select', { name: 'slotId' }, cal.map((s) => h('option', { value: s.id }, `${dow(s.start)} ${dayLabel(s.start)} ${fmtTime(s.start)}`))),
     h('label', {}, 'Service'), h('select', { name: 'serviceId' }, S.cfg.services.map((x) => h('option', { value: x.id }, `${x.name} – ${money(x.total)}`))),
     h('label', {}, 'Platform (online only)'), h('select', { name: 'platform' }, S.cfg.platforms.map((p) => h('option', {}, p))),

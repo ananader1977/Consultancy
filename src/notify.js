@@ -119,13 +119,15 @@ export function createNotifier(ctx) {
     whatsapp,
     async paymentLink(b, url) {
       const s = ctx.settings();
+      let mail = { status: 'none', error: 'No email on this booking' };
       const until = b.lock_expires ? fmtStamp(b.lock_expires) : '';
       if (b.email) {
         const inner = `<p>Dear ${escHtml(b.customer_name)},</p><p>Your session is reserved. Please complete the payment to confirm it${until ? ` before <b>${escHtml(until)}</b> (Dubai time)` : ''}.</p>${details(b, s)}
 <p style="margin:20px 0"><a href="${escHtml(url)}" style="background:#5b4a8a;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Pay now</a></p><p style="font-size:13px;color:#6b7280">${escHtml(url)}</p>`;
-        await email({ to: b.email, subject: `Payment link - ${b.reference}`, text: `Dear ${b.customer_name},\n\nPlease complete the payment to confirm your session${until ? ` before ${until} (Dubai time)` : ''}:\n${url}\n\n${plain(b)}`, html: layout(s, 'Complete your payment', inner), bookingId: b.id });
+        mail = await email({ to: b.email, subject: `Payment link - ${b.reference}`, text: `Dear ${b.customer_name},\n\nPlease complete the payment to confirm your session${until ? ` before ${until} (Dubai time)` : ''}:\n${url}\n\n${plain(b)}`, html: layout(s, 'Complete your payment', inner), bookingId: b.id });
       }
       await whatsapp({ booking: b, kind: 'payment', extra: [toText(`${dh()}${money(b.total)}`), url] });
+      return { email: b.email || null, ...mail };
     },
     async bookingConfirmed(b, inv) {
       const s = ctx.settings();

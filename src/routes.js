@@ -238,7 +238,7 @@ export function registerRoutes(app, ctx) {
   app.post('/api/admin/bookings', admin, async (req, res) => {
     const body = await req.json();
     const r = await svc.adminCreateBooking(body, req.admin.email, { markPaid: body.markPaid === true });
-    res.json({ booking: svc.publicAdminBooking(r.booking), payUrl: r.payUrl }, 201);
+    res.json({ booking: svc.publicAdminBooking(r.booking), payUrl: r.payUrl, delivery: r.delivery }, 201);
   });
   app.patch('/api/admin/bookings/:id', admin, async (req, res) => res.json({ booking: svc.publicAdminBooking(svc.adminUpdateBooking(idParam(req), await req.json(), req.admin.email)) }));
   app.post('/api/admin/bookings/:id/reschedule', admin, async (req, res) => {
@@ -247,9 +247,9 @@ export function registerRoutes(app, ctx) {
   });
   app.post('/api/admin/bookings/:id/refund/approve', admin, async (req, res) => res.json({ booking: svc.publicAdminBooking(await svc.approveRefund(idParam(req), req.admin.email)) }));
   app.post('/api/admin/bookings/:id/refund/reject', admin, async (req, res) => res.json({ booking: svc.publicAdminBooking(svc.rejectRefund(idParam(req), req.admin.email)) }));
-  app.post('/api/admin/bookings/:id/payment-link', admin, (req, res) => {
-    const r = svc.sendPaymentLink(idParam(req), req.admin.email);
-    res.json({ booking: svc.publicAdminBooking(r.booking), payUrl: r.payUrl });
+  app.post('/api/admin/bookings/:id/payment-link', admin, async (req, res) => {
+    const r = await svc.sendPaymentLink(idParam(req), req.admin.email);
+    res.json({ booking: svc.publicAdminBooking(r.booking), payUrl: r.payUrl, delivery: r.delivery });
   });
   app.post('/api/admin/bookings/:id/mark-paid', admin, async (req, res) => res.json({ booking: svc.publicAdminBooking(await svc.markPaidManually(idParam(req), req.admin.email)) }));
   app.post('/api/admin/bookings/:id/cancel', admin, (req, res) => res.json({ booking: svc.publicAdminBooking(svc.cancelPending(idParam(req), req.admin.email)) }));

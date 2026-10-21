@@ -192,7 +192,7 @@ export function createService(ctx) {
   }
 
   /** Admin: send (or resend) the payment link for a pending booking and keep the slot held for payment_link_hours. */
-  function sendPaymentLink(id, actor) {
+  async function sendPaymentLink(id, actor) {
     const s = ctx.settings();
     const b = mustBooking(id);
     expireDue();
@@ -204,8 +204,8 @@ export function createService(ctx) {
     const nb = bookingById(id);
     const url = payLinkUrl(nb);
     audit(actor, 'payment.link_sent', nb.id, `valid until ${T.fmtStamp(until)}`);
-    ctx.background(ctx.notifier.paymentLink(nb, url));
-    return { booking: nb, payUrl: url };
+    const delivery = await ctx.notifier.paymentLink(nb, url);
+    return { booking: nb, payUrl: url, delivery };
   }
 
   // ---- payment handling ----------------------------------------------------------------
@@ -501,8 +501,8 @@ export function createService(ctx) {
     const { booking } = await createBooking(input, { actor, skipCheckout: true });
     if (markPaid) return { booking: await markPaidManually(booking.id, actor), payUrl: null };
     // not paid yet: send the client the payment link right away (slot held for payment_link_hours)
-    const r = sendPaymentLink(booking.id, actor);
-    return { booking: r.booking, payUrl: r.payUrl };
+    const r = await sendPaymentLink(booking.id, actor);
+    return { booking: r.booking, payUrl: r.payUrl, delivery: r.delivery };
   }
 
   // ---- slots (admin) ---------------------------------------------------------------------
