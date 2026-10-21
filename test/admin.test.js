@@ -289,3 +289,20 @@ describe('Excel export', () => {
     fs.writeFileSync(process.env.XLSX_OUT || '/dev/null', buf);
   });
 });
+
+describe('dirham sign', () => {
+  let app;
+  before(async () => { app = await startTestApp(); });
+  after(() => app.close());
+  test('font and email image are served; text emails keep AED', async () => {
+    const f = await app.call('GET', '/fonts/dirham.woff', undefined, { raw: true });
+    assert.equal(f.status, 200);
+    assert.equal(f.headers.get('content-type'), 'font/woff');
+    assert.equal((await app.call('GET', '/dirham.png', undefined, { raw: true })).status, 200);
+    const b = await app.book(app.slot(2, 10).id, { email: 'sym@example.com' });
+    await app.pay(b);
+    const m = app.ctx.db.prepare("SELECT * FROM outbox WHERE to_addr='sym@example.com'").get();
+    assert.match(m.body, /Amount: AED 525\.00/);
+    assert.doesNotMatch(m.body, /&nbsp;|<img/);
+  });
+});

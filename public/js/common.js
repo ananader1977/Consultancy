@@ -18,7 +18,9 @@ export const fmtRange = (a, b) => `${fmtDate(a)}${LANG === 'ar' ? '،' : ','} ${
 export const fmtStamp = (ts) => `${fmtDate(ts)} ${fmtTime(ts)}`;
 export const dow = (ts) => fDow.format(ts);
 export const dayLabel = (ts) => fDay.format(ts);
-export const money = (n) => `AED ${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+try { document.fonts?.load('16px "Dirham Sign"', '\u20C3'); } catch { /* older browsers */ }
+// UAE dirham sign (U+20C3), drawn by /fonts/dirham.woff until system fonts include it
+export const money = (n) => `\u20C3\u00A0${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 export const DAY = 86400000;
 export const HOUR = 3600000;
 /** Dubai-midnight timestamp for a YYYY-MM-DD key. */

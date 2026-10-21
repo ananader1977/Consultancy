@@ -70,8 +70,11 @@ export function createNotifier(ctx) {
       ? `Online via ${escHtml(b.platform || 'Zoom/Teams')}${b.meeting_link ? ` - <a href="${escHtml(b.meeting_link)}">join link</a>` : ' (link will be sent before the appointment)'}`
       : `At our office${s.company_address ? ': ' + escHtml(s.company_address) : ''}`;
     const row = (k, v) => `<tr><td style="padding:6px 12px 6px 0;color:#6b7280;white-space:nowrap">${k}</td><td style="padding:6px 0"><b>${v}</b></td></tr>`;
-    return `<table style="border-collapse:collapse;font-size:14px">${row('Reference', escHtml(b.reference))}${row('Service', escHtml(b.service_name))}${row('When', escHtml(fmtRange(b.start_ts, b.end_ts)))}${row('Where', where)}${row('Amount', `AED ${money(b.total)} (incl. VAT ${money(b.vat)})`)}${b.invoice_number ? row('Invoice', escHtml(b.invoice_number)) : ''}</table>`;
+    return `<table style="border-collapse:collapse;font-size:14px">${row('Reference', escHtml(b.reference))}${row('Service', escHtml(b.service_name))}${row('When', escHtml(fmtRange(b.start_ts, b.end_ts)))}${row('Where', where)}${row('Amount', `${dh()}${money(b.total)} (incl. VAT ${dh()}${money(b.vat)})`)}${b.invoice_number ? row('Invoice', escHtml(b.invoice_number)) : ''}</table>`;
   };
+  // dirham sign as an image in HTML emails (email apps do not have the new symbol yet); alt text keeps AED
+  const dh = () => `<img src="${config.baseUrl}/dirham.png" alt="AED" width="13" height="12" style="vertical-align:-1px;border:0">&nbsp;`;
+  const toText = (html) => html.replace(/<img[^>]*alt="AED"[^>]*>&nbsp;/g, 'AED ').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ');
   const plain = (b) => `Reference: ${b.reference}\nService: ${b.service_name}\nWhen: ${fmtRange(b.start_ts, b.end_ts)}\nAmount: AED ${money(b.total)}${b.invoice_number ? `\nInvoice: ${b.invoice_number}` : ''}`;
   const manageUrl = (b) => `${config.baseUrl}/manage.html?ref=${encodeURIComponent(b.reference)}&t=${b.manage_token}`;
   const ownerTo = (s) => s.owner_email || 'info@lamaalsafadi.ae';
@@ -89,16 +92,16 @@ export function createNotifier(ctx) {
   });
   const manageBlock = (b) => `<div style="margin:18px 0 4px;padding:14px 16px;background:#f1edf8;border-radius:10px">
 <div style="font-weight:bold;color:#3b2f63;font-size:15px">Save this link to manage your booking</div>
-<div style="font-size:14px;margin:6px 0 12px">View, reschedule or cancel your booking at any time. Booking reference: <b>${escHtml(b.reference)}</b></div>
+<div style="font-size:14px;margin:6px 0 12px">View or change your booking at any time. Booking reference: <b>${escHtml(b.reference)}</b></div>
 <a href="${escHtml(manageUrl(b))}" style="display:inline-block;background:#5b4a8a;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:bold">Manage my booking</a>
 <div style="font-size:12px;color:#6b7280;margin-top:10px;word-break:break-all">${escHtml(manageUrl(b))}</div></div>`;
   const sendBoth = async (b, s, { subject, headline, intro, extraClient = '', attachments = [], ownerNote, ownerSubject, waKind, manage = true }) => {
     const clientHtml = layout(s, headline, `<p>Dear ${escHtml(b.customer_name)},</p><p>${intro}</p>${details(b, s)}${extraClient}${manage ? manageBlock(b) : ''}`);
-    await email({ to: b.email, subject, text: `Dear ${b.customer_name},\n\n${intro.replace(/<[^>]+>/g, '')}\n\n${plain(b)}${manage ? `\n\nSave this link to view, reschedule or cancel your booking:\n${manageUrl(b)}` : ''}`, html: clientHtml, attachments, bookingId: b.id });
+    await email({ to: b.email, subject, text: `Dear ${b.customer_name},\n\n${toText(intro)}\n\n${plain(b)}${manage ? `\n\nSave this link to view or change your booking:\n${manageUrl(b)}` : ''}`, html: clientHtml, attachments, bookingId: b.id });
     const owner = ownerTo(s);
     if (owner) {
       const ownerHtml = layout(s, `[Admin] ${headline}`, `<p>${ownerNote}</p>${details(b, s)}<p style="font-size:14px">Customer: <b>${escHtml(b.customer_name)}</b><br>Mobile: ${escHtml(b.mobile)}<br>Email: ${escHtml(b.email || '-')}</p>`);
-      await email({ to: owner, subject: `[Admin] ${ownerSubject || subject}`, text: `${ownerNote.replace(/<[^>]+>/g, '')}\n\n${plain(b)}\nCustomer: ${b.customer_name} | ${b.mobile} | ${b.email || 'no email'}`, html: ownerHtml, bookingId: b.id });
+      await email({ to: owner, subject: `[Admin] ${ownerSubject || subject}`, text: `${toText(ownerNote)}\n\n${plain(b)}\nCustomer: ${b.customer_name} | ${b.mobile} | ${b.email || 'no email'}`, html: ownerHtml, bookingId: b.id });
     }
     if (waKind) await whatsapp({ booking: b, kind: waKind });
   };
@@ -121,7 +124,7 @@ export function createNotifier(ctx) {
         extraClient: `<p style="font-size:14px">You can change your appointment free of charge up to ${s.free_reschedule_hours} hours before it, up to ${s.max_changes} times within ${s.change_window_days} days.</p>`,
         attachments: [invoiceAttachment(inv), icsAttachment(b, s, 'PUBLISH')],
         ownerSubject: `New confirmed booking - ${b.reference} - ${b.customer_name} - ${fmtStamp(b.start_ts)}`,
-        ownerNote: `New confirmed booking: payment received (AED ${money(b.total)}).`,
+        ownerNote: `New confirmed booking: payment received (${dh()}${money(b.total)}).`,
         waKind: 'confirmation',
       });
     },
@@ -176,10 +179,10 @@ export function createNotifier(ctx) {
       await sendBoth(b, s, {
         subject: `Booking cancelled - ${b.reference}`,
         headline: 'Your booking was cancelled',
-        intro: `Your booking was cancelled and your payment of <b>AED ${money(b.total)}</b> was returned to your card (it can take 5-10 business days to appear). A tax credit note is attached.`,
+        intro: `Your booking was cancelled and your payment of <b>${dh()}${money(b.total)}</b> was returned to your card (it can take 5-10 business days to appear). A tax credit note is attached.`,
         ownerSubject: `Refund processed - ${b.reference}`,
         attachments: inv ? [invoiceAttachment(inv, true)] : [],
-        ownerNote: `Refund processed for ${escHtml(b.reference)} (AED ${money(b.total)}). Reference: ${escHtml(b.refund_ref || '')}.`,
+        ownerNote: `Refund processed for ${escHtml(b.reference)} (${dh()}${money(b.total)}). Reference: ${escHtml(b.refund_ref || '')}.`,
         waKind: 'update',
       });
     },
@@ -198,7 +201,7 @@ export function createNotifier(ctx) {
       await sendBoth(b, s, {
         subject: `Booking could not be completed - ${b.reference}`,
         headline: 'Your payment was returned',
-        intro: `Your payment arrived after the ${s.lock_minutes}-minute reservation expired and the time slot was taken by someone else. Your payment of <b>AED ${money(b.total)}</b> has been returned in full. Please book another slot.`,
+        intro: `Your payment arrived after the ${s.lock_minutes}-minute reservation expired and the time slot was taken by someone else. Your payment of <b>${dh()}${money(b.total)}</b> has been returned in full. Please book another slot.`,
         ownerNote: `Automatic refund issued for ${escHtml(b.reference)} (payment arrived after the slot hold expired and the slot was re-booked).`,
       });
     },

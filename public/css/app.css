@@ -1,7 +1,8 @@
+@font-face{font-family:"Dirham Sign";src:url(/fonts/dirham.woff) format("woff");unicode-range:U+20C3;font-display:block}
 :root{--bg:#f5f6fa;--card:#fff;--ink:#1c2333;--muted:#667085;--line:#e3e6ee;--brand:#5b4a8a;--brand-d:#463972;--tint:#f1edf8;--ok:#16a34a;--ok-bg:#dcfce7;--warn:#b45309;--warn-bg:#fef3c7;--bad:#b91c1c;--bad-bg:#fee2e2;--grey-bg:#eceef3;--r:12px}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+body{margin:0;font:16px/1.5 "Dirham Sign",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
 h1,h2,h3{line-height:1.25;margin:0 0 .5rem}h1{font-size:1.6rem}h2{font-size:1.2rem}h3{font-size:1rem}
 a{color:var(--brand)}
 .wrap{max-width:1040px;margin:0 auto;padding:16px}
@@ -66,7 +67,7 @@ dialog{border:0;border-radius:14px;padding:0;max-width:min(560px,94vw);width:100
 .lang{font:inherit;font-weight:700;font-size:.9rem;padding:6px 12px;border-radius:99px;border:1px solid var(--brand);background:#fff;color:var(--brand);cursor:pointer;min-height:36px}
 .lang:hover{background:var(--tint)}
 .save-link input{font-size:.9rem;color:var(--muted)}
-[dir=rtl] body{font-family:system-ui,-apple-system,"Segoe UI",Tahoma,"Noto Naskh Arabic",sans-serif}
+[dir=rtl] body{font-family:"Dirham Sign",system-ui,-apple-system,"Segoe UI",Tahoma,"Noto Naskh Arabic",sans-serif}
 [dir=rtl] .kv dd{text-align:right}
 [dir=rtl] input[dir=ltr]{text-align:right}
 .site-foot{background:#fff;border-top:1px solid var(--line);margin-top:16px;font-size:.85rem}

@@ -115,7 +115,7 @@ const VIEWS = {
   async services(el) {
     const r = await A('GET', '/services');
     const rowFor = (s) => { const price = h('input', { type: 'number', min: 0, step: '0.01', value: s.price }); const name = h('input', { value: s.name }); const act = h('input', { type: 'checkbox', checked: !!s.active });
-      return h('div', { class: 'card' }, h('div', { class: 'row' }, h('div', {}, h('label', {}, 'Name'), name), h('div', {}, h('label', {}, `Price (AED, ${S.cfg.pricesIncludeVat ? 'VAT incl.' : 'before VAT'})`), price)),
+      return h('div', { class: 'card' }, h('div', { class: 'row' }, h('div', {}, h('label', {}, 'Name'), name), h('div', {}, h('label', {}, `Price (\u20C3, ${S.cfg.pricesIncludeVat ? 'VAT incl.' : 'before VAT'})`), price)),
         h('label', {}, act, ' Active (shown to customers)'), h('p', {}, h('button', { class: 'btn', onclick: () => run(() => A('PUT', `/services/${s.id}`, { name: name.value, price: price.value, active: act.checked }), 'Saved') }, `Save ${s.kind}`))); };
     clear(el).append(h('h2', {}, 'Services & prices'), h('p', { class: 'muted' }, 'Changes apply to new bookings only. Existing bookings keep the price they were booked at.'), r.services.map(rowFor));
   },
@@ -165,7 +165,7 @@ function bookingTable(list, withRefundActions) {
       h('td', {}, h('button', { class: 'btn alt sm', onclick: () => detail(b.id) }, 'Open'),
         withRefundActions ? [' ', h('button', { class: 'btn ok sm', onclick: () => approve(b) }, 'Approve'), ' ', h('button', { class: 'btn danger sm', onclick: () => reject(b) }, 'Reject')] : null)))));
 }
-async function approve(b) { if (confirm(`Refund ${money(b.total)} to ${b.customer_name} and cancel the booking?`) && await run(() => A('POST', `/bookings/${b.id}/refund/approve`, {}), 'Refund approved')) { dlg.close(); refresh(); } }
+async function approve(b) { if (confirm(`Refund AED ${Number(b.total).toFixed(2)} to ${b.customer_name} and cancel the booking?`) && await run(() => A('POST', `/bookings/${b.id}/refund/approve`, {}), 'Refund approved')) { dlg.close(); refresh(); } }
 async function reject(b) { if (await run(() => A('POST', `/bookings/${b.id}/refund/reject`, {}), 'Refund rejected')) { dlg.close(); refresh(); } }
 
 async function detail(id) {
