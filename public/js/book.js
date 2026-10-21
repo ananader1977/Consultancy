@@ -64,7 +64,9 @@ function render() {
     svc?.kind === 'online' ? [h('label', { for: 'platform' }, T.platform), h('select', { id: 'platform', name: 'platform' }, cfg.platforms.map((p) => h('option', { value: p }, T.platformName(p))))] : null,
     h('label', { class: 'terms' }, h('input', { type: 'checkbox', id: 'terms', name: 'acceptTerms', required: true }),
       h('span', {}, T.termsA, h('a', { href: '/terms.html', target: '_blank', rel: 'noopener' }, T.termsLink), T.termsB)),
-    h('p', { class: 'notice', role: 'note' }, h('b', {}, T.notMedicalTitle), ' ', T.notMedical),
+    Array.isArray(T.notMedical)
+      ? h('div', { class: 'notice', role: 'note' }, T.notMedical.map((x, i) => (i === 0 ? h('p', {}, h('b', {}, x)) : h('p', {}, x))))
+      : h('p', { class: 'notice', role: 'note' }, h('b', {}, T.notMedicalTitle), ' ', T.notMedical),
     h('div', { id: 'err', class: 'alert bad hide', role: 'alert' }),
     h('div', { class: 'sticky' },
       h('div', { class: 'small', id: 'sum' }, S.slot ? `${svcName(svc)} · ${dow(S.slot.start)} ${dayLabel(S.slot.start)} ${timeRange(S.slot.start, S.slot.end)} · ${ltr(money(svc.total))}` : T.chooseSlot),
