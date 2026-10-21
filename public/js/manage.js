@@ -20,7 +20,7 @@ async function show() {
   try { b = await api('GET', `/api/manage/${encodeURIComponent(ref)}?t=${encodeURIComponent(tok)}`); } catch (e) { app.replaceChildren(h('div', { class: 'alert bad' }, e.message), h('a', { href: '/manage.html' }, T.tryAgain)); return; }
   const out = [h('h1', {}, T.yourBooking), h('div', { class: 'card' }, h('dl', { class: 'kv' },
     h('dt', {}, T.reference), h('dd', {}, h('b', {}, b.reference)), h('dt', {}, T.status), h('dd', {}, badge(b.status)),
-    h('dt', {}, T.service), h('dd', {}, (AR ? (b.kind === 'online' ? T.svcOnline : T.svcOffline) : b.service) + (b.platform ? ` (${b.platform})` : '')), h('dt', {}, T.when), h('dd', {}, fmtRange(b.start, b.end)),
+    h('dt', {}, T.service), h('dd', {}, (AR ? (b.kind === 'online' ? (b.platform ? `جلسة عن بُعد (${T.platformName(b.platform)})` : T.svcOnline) : T.svcOffline) : b.service + (b.platform ? ` (${b.platform})` : ''))), h('dt', {}, T.when), h('dd', {}, fmtRange(b.start, b.end)),
     h('dt', {}, T.total), h('dd', {}, money(b.total)),
     b.meetingLink ? [h('dt', {}, T.meetingLink), h('dd', {}, h('a', { href: b.meetingLink }, b.meetingLink))] : null,
     b.invoiceNumber ? [h('dt', {}, T.taxInvoice), h('dd', {}, h('a', { href: `/api/invoices/${b.invoiceNumber}/pdf?t=${b.invoiceToken}`, target: '_blank', rel: 'noopener' }, T.downloadPdf))] : null))];

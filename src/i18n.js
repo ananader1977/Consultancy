@@ -4,7 +4,7 @@ const AR = {
   'Please enter a valid mobile number, e.g. +971501234567.': 'يرجى إدخال رقم جوال صحيح، مثل ‎+971501234567.',
   'Please enter a valid email address.': 'يرجى إدخال بريد إلكتروني صحيح.',
   'Please choose a service.': 'يرجى اختيار الخدمة.',
-  'Please choose Zoom or Microsoft Teams for your online meeting.': 'يرجى اختيار Zoom أو Microsoft Teams للاجتماع عن بُعد.',
+  'Please choose phone call, Zoom or Botim for your online session.': 'يرجى اختيار مكالمة هاتفية أو زوم أو بوتيم للجلسة عن بُعد.',
   'Please choose a time slot.': 'يرجى اختيار موعد.',
   'Please read and accept the Terms & Conditions to continue.': 'يرجى قراءة الشروط والأحكام والموافقة عليها للمتابعة.',
   'Sorry, this time slot was just taken. Please choose another.': 'عذراً، تم حجز هذا الموعد للتو. يرجى اختيار موعد آخر.',

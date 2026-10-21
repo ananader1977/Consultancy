@@ -67,7 +67,9 @@ export function createNotifier(ctx) {
 
   const details = (b, s) => {
     const where = b.service_kind === 'online'
-      ? `Online via ${escHtml(b.platform || 'Zoom/Teams')}${b.meeting_link ? ` - <a href="${escHtml(b.meeting_link)}">join link</a>` : ' (link will be sent before the appointment)'}`
+      ? (b.platform === 'Phone call' || b.platform === 'Botim'
+        ? `${b.platform === 'Botim' ? 'Botim call' : 'Phone call'} - we will call you on ${escHtml(b.mobile)}${b.meeting_link ? ` - <a href="${escHtml(b.meeting_link)}">link</a>` : ''}`
+        : `Online via ${escHtml(b.platform || 'Zoom')}${b.meeting_link ? ` - <a href="${escHtml(b.meeting_link)}">join link</a>` : ' (link will be sent before the appointment)'}`)
       : `At our office${s.company_address ? ': ' + escHtml(s.company_address) : ''}`;
     const row = (k, v) => `<tr><td style="padding:6px 12px 6px 0;color:#6b7280;white-space:nowrap">${k}</td><td style="padding:6px 0"><b>${v}</b></td></tr>`;
     return `<table style="border-collapse:collapse;font-size:14px">${row('Reference', escHtml(b.reference))}${row('Service', escHtml(b.service_name))}${row('When', escHtml(fmtRange(b.start_ts, b.end_ts)))}${row('Where', where)}${row('Amount', `${dh()}${money(b.total)} (incl. VAT ${dh()}${money(b.vat)})`)}${b.invoice_number ? row('Invoice', escHtml(b.invoice_number)) : ''}</table>`;

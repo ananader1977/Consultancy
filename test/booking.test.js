@@ -63,10 +63,14 @@ describe('creating bookings', () => {
     assert.equal((await app.book(s.id, { mobile: '050 123 4567' })).status, 201, 'local format with spaces is accepted');
   });
 
-  test('online service needs Zoom or Teams; offline does not', async () => {
+  test('online service needs phone call, Zoom or Botim; offline does not', async () => {
     assert.equal((await app.book(app.slot(1, 11).id, { platform: '' })).status, 400);
-    assert.equal((await app.book(app.slot(1, 11).id, { platform: 'Skype' })).status, 400);
-    assert.equal((await app.book(app.slot(1, 11).id, { platform: 'Microsoft Teams' })).status, 201);
+    assert.equal((await app.book(app.slot(1, 11).id, { platform: 'Microsoft Teams' })).status, 400, 'Teams no longer offered');
+    const ar = await app.call('POST', '/api/bookings', app.customer({ slotId: app.slot(1, 11).id, platform: 'Skype' }), { headers: { 'X-Lang': 'ar' } });
+    assert.match(ar.body.error, /بوتيم/);
+    assert.equal((await app.book(app.slot(1, 11).id, { platform: 'Botim', email: 'botim@example.com' })).status, 201);
+    assert.equal((await app.book(app.slot(1, 16).id, { platform: 'Phone call' })).status, 201);
+    assert.deepEqual((await app.call('GET', '/api/config')).body.platforms, ['Phone call', 'Zoom', 'Botim']);
     const off = await app.book(app.slot(1, 12).id, { serviceId: 2, platform: '' });
     assert.equal(off.status, 201);
     assert.equal(off.body.total, 500);

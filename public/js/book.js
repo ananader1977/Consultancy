@@ -61,7 +61,7 @@ function render() {
   const form = h('form', { id: 'f', novalidate: true, onsubmit: submit },
     h('label', { for: 'name' }, T.fullName), h('input', { id: 'name', name: 'name', autocomplete: 'name', required: true, maxlength: 100 }),
     h('label', { for: 'mobile' }, T.mobile), h('input', { id: 'mobile', name: 'mobile', type: 'tel', inputmode: 'tel', autocomplete: 'tel', placeholder: '+971 50 123 4567', required: true, dir: 'ltr' }),
-    svc?.kind === 'online' ? [h('label', { for: 'platform' }, T.platform), h('select', { id: 'platform', name: 'platform' }, cfg.platforms.map((p) => h('option', { value: p }, p)))] : null,
+    svc?.kind === 'online' ? [h('label', { for: 'platform' }, T.platform), h('select', { id: 'platform', name: 'platform' }, cfg.platforms.map((p) => h('option', { value: p }, T.platformName(p))))] : null,
     h('label', { class: 'terms' }, h('input', { type: 'checkbox', id: 'terms', name: 'acceptTerms', required: true }),
       h('span', {}, T.termsA, h('a', { href: '/terms.html', target: '_blank', rel: 'noopener' }, T.termsLink), T.termsB)),
     h('p', { class: 'notice', role: 'note' }, h('b', {}, T.notMedicalTitle), ' ', T.notMedical),

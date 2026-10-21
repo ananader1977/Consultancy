@@ -6,7 +6,8 @@ import * as T from './time.js';
 import { cleanMobile, isEmail, clampStr, whatsappNumber } from './util.js';
 import { safeEqual, hmac } from './auth.js';
 
-export const PLATFORMS = ['Zoom', 'Microsoft Teams'];
+export const PLATFORMS = ['Phone call', 'Zoom', 'Botim'];
+const LEGACY_PLATFORMS = ['Microsoft Teams']; // kept valid for bookings made before Oct 2026
 const ACTIVE_SQL = "('pending','confirmed','refund_requested')";
 const isUnique = (e) => /UNIQUE/i.test(String(e?.message));
 
@@ -121,7 +122,7 @@ export function createService(ctx) {
     let platform = null;
     if (service.kind === 'online') {
       platform = clampStr(input.platform, 30);
-      if (!PLATFORMS.includes(platform)) throw new HttpError(400, 'Please choose Zoom or Microsoft Teams for your online meeting.');
+      if (!PLATFORMS.includes(platform)) throw new HttpError(400, 'Please choose phone call, Zoom or Botim for your online session.');
     }
     const slotId = Number(input.slotId);
     if (!Number.isInteger(slotId)) throw new HttpError(400, 'Please choose a time slot.');
@@ -186,7 +187,7 @@ export function createService(ctx) {
       }
     }
     const s = ctx.settings();
-    const link = b.meeting_link || (b.service_kind === 'online' ? (b.platform === 'Zoom' ? s.zoom_link : s.teams_link) || '' : '');
+    const link = b.meeting_link || (b.service_kind === 'online' ? (b.platform === 'Zoom' ? s.zoom_link : b.platform === 'Microsoft Teams' ? s.teams_link : '') || '' : '');
     q(`UPDATE bookings SET status='confirmed', payment_status='paid', paid_at=?, payment_ref=?, lock_expires=NULL, meeting_link=?, updated_at=? WHERE id=?`)
       .run(ctx.now(), paymentRef || null, link, ctx.now(), bookingId);
     const invoice = createInvoice(bookingId);
@@ -412,7 +413,7 @@ export function createService(ctx) {
       set.email = e;
     }
     if (patch.platform !== undefined && b.service_kind === 'online') {
-      if (!PLATFORMS.includes(patch.platform)) throw new HttpError(400, 'Platform must be Zoom or Microsoft Teams.');
+      if (![...PLATFORMS, ...LEGACY_PLATFORMS].includes(patch.platform)) throw new HttpError(400, 'Platform must be Phone call, Zoom or Botim.');
       set.platform = patch.platform;
     }
     if (patch.meeting_link !== undefined) {
