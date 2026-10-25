@@ -21,14 +21,24 @@ async function load() {
   kids.push(h('div', { class: 'card' }, h('dl', { class: 'kv' },
     h('dt', {}, T.reference), h('dd', {}, h('b', {}, b.reference)), h('dt', {}, T.status), h('dd', {}, badge(b.status), ' ', badge(b.paymentStatus)),
     h('dt', {}, T.service), h('dd', {}, (AR ? (b.kind === 'online' ? (b.platform ? `جلسة عن بُعد (${T.platformName(b.platform)})` : T.svcOnline) : T.svcOffline) : b.service + (b.platform ? ` (${b.platform})` : ''))), h('dt', {}, T.when), h('dd', {}, fmtRange(b.start, b.end)),
+    b.paymentMethod ? [h('dt', {}, T.payMethodDt), h('dd', {}, T.payMethod[b.paymentMethod] || b.paymentMethod)] : null,
     h('dt', {}, T.total), h('dd', {}, money(b.total), h('span', { class: 'muted small' }, T.inclVatAmt(money(b.vat)))),
     b.meetingLink ? [h('dt', {}, T.meetingLink), h('dd', {}, h('a', { href: b.meetingLink }, b.meetingLink))] : null,
     b.invoiceNumber ? [h('dt', {}, T.taxInvoice), h('dd', {}, h('a', { href: `/api/invoices/${b.invoiceNumber}/pdf?t=${b.invoiceToken}`, target: '_blank', rel: 'noopener' }, `${b.invoiceNumber} (PDF)`))] : null)));
   const actions = h('p', { class: 'row' });
-  if (b.status === 'pending') actions.append(h('a', { class: 'btn', href: `/pay.html?ref=${encodeURIComponent(ref)}&t=${encodeURIComponent(t)}` }, T.payNow), h('a', { class: 'btn alt', href: '/' }, T.chooseAnother));
+  if (b.status === 'pending') actions.append(h('a', { class: b.paymentMethod === 'card' ? 'btn' : 'btn alt', href: `/pay.html?ref=${encodeURIComponent(ref)}&t=${encodeURIComponent(t)}` }, b.paymentMethod === 'card' ? T.payNow : T.payByCard), h('a', { class: 'btn alt', href: '/' }, T.chooseAnother));
   if (b.status === 'confirmed' || b.status === 'refund_requested') actions.append(h('a', { class: 'btn', href: manage }, T.reschedOrRefund), h('button', { class: 'btn alt', onclick: () => print() }, T.print));
+  if (b.status === 'pending' && b.paymentMethod === 'bank_transfer' && b.bank) {
+    const row = (k, v, copy) => [h('dt', {}, k), h('dd', {}, h('b', { dir: 'ltr' }, v), copy ? [' ', h('button', { class: 'btn alt sm', type: 'button', onclick: async () => { try { await navigator.clipboard.writeText(v); toast(T.copied); } catch { /* ignore */ } } }, T.copyShort)] : null)];
+    kids.push(h('div', { class: 'card' }, h('h2', {}, T.bankTitle), h('dl', { class: 'kv' },
+      b.bank.name ? row(T.bankName, b.bank.name) : null, b.bank.accountName ? row(T.bankAccName, b.bank.accountName) : null,
+      row(T.iban, b.bank.iban, true), row(T.amountL, money(b.total)), row(T.transferRef, b.reference, true)),
+      h('p', { class: 'muted' }, T.bankSteps),
+      b.contactPhone ? h('p', {}, h('a', { class: 'btn wa sm', href: `https://wa.me/${b.contactPhone}?text=${encodeURIComponent(T.receiptText(b.reference))}`, target: '_blank', rel: 'noopener' }, T.sendReceipt)) : null));
+  }
+  if (b.status === 'pending' && b.paymentMethod === 'cash') kids.push(h('div', { class: 'alert' }, T.cashInfo));
   kids.push(actions);
-  if (b.status === 'pending') kids.push(payLinkCard(T, ref, t));
+  if (b.status === 'pending' && b.paymentMethod === 'card') kids.push(payLinkCard(T, ref, t));
   if (b.status === 'confirmed' || b.status === 'refund_requested') {
     const full = new URL(manage, location.origin).toString();
     const copyBtn = h('button', { class: 'btn alt sm', type: 'button', onclick: async () => {

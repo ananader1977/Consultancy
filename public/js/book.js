@@ -36,6 +36,7 @@ function render() {
     h('div', {}, h('b', {}, svcName(s)), h('div', { class: 'price' }, money(s.total)),
       h('div', { class: 'small' }, s.kind === 'online' ? T.onlineDesc : T.offlineDesc))));
   const svc = cfg.services.find((s) => s.id === S.svc);
+  if (!S.pm || !(cfg.payMethods || ['card']).filter((m) => m !== 'cash' || svc?.kind === 'offline').includes(S.pm)) S.pm = 'card';
 
   const prev = h('button', { class: 'btn alt sm', disabled: S.weekStart <= mondayOf(cfg.today) || S.weekStart - 7 * DAY + 6 * DAY <= cfg.today - 1, 'aria-label': T.prevWeek, onclick: async () => { S.weekStart -= 7 * DAY; await loadWeek(); render(); } }, T.prev);
   const next = h('button', { class: 'btn alt sm', disabled: S.weekStart + 7 * DAY >= maxStart(), 'aria-label': T.nextWeek, onclick: async () => { S.weekStart += 7 * DAY; await loadWeek(); render(); } }, T.next);
@@ -62,6 +63,9 @@ function render() {
     h('label', { for: 'name' }, T.fullName), h('input', { id: 'name', name: 'name', autocomplete: 'name', required: true, maxlength: 100 }),
     h('label', { for: 'mobile' }, T.mobile), h('input', { id: 'mobile', name: 'mobile', type: 'tel', inputmode: 'tel', autocomplete: 'tel', placeholder: '+971 50 123 4567', required: true, dir: 'ltr' }),
     svc?.kind === 'online' ? [h('label', { for: 'platform' }, T.platform), h('select', { id: 'platform', name: 'platform' }, cfg.platforms.map((p) => h('option', { value: p }, T.platformName(p))))] : null,
+    (cfg.payMethods || ['card']).filter((m) => m !== 'cash' || svc?.kind === 'offline').length > 1 ? [h('label', {}, T.payMethodL), h('div', { class: 'paym', role: 'radiogroup' }, (cfg.payMethods || ['card']).filter((m) => m !== 'cash' || svc?.kind === 'offline').map((m) => h('label', { class: 'terms' },
+      h('input', { type: 'radio', name: 'paymentMethod', value: m, checked: S.pm === m, onchange: () => { S.pm = m; render(); } }),
+      h('span', {}, m === 'card' ? T.pmCard : m === 'bank_transfer' ? T.pmBank : T.pmCash, m !== 'card' ? h('div', { class: 'small muted' }, (m === 'bank_transfer' ? T.pmBankHint : T.pmCashHint)(cfg.offlineHoldHours)) : null))))] : null,
     h('label', { class: 'terms' }, h('input', { type: 'checkbox', id: 'terms', name: 'acceptTerms', required: true }),
       h('span', {}, T.termsA, h('a', { href: '/terms.html', target: '_blank', rel: 'noopener' }, T.termsLink), T.termsB)),
     Array.isArray(T.notMedical)
@@ -70,7 +74,7 @@ function render() {
     h('div', { id: 'err', class: 'alert bad hide', role: 'alert' }),
     h('div', { class: 'sticky' },
       h('div', { class: 'small', id: 'sum' }, S.slot ? `${svcName(svc)} · ${dow(S.slot.start)} ${dayLabel(S.slot.start)} ${timeRange(S.slot.start, S.slot.end)} · ${ltr(money(svc.total))}` : T.chooseSlot),
-      h('button', { class: 'btn block', id: 'go', type: 'submit', disabled: !S.slot }, `${T.continuePay}${svc ? ' · ' + money(svc.total) : ''}`)));
+      h('button', { class: 'btn block', id: 'go', type: 'submit', disabled: !S.slot }, `${S.pm === 'card' ? T.continuePay : T.confirmBooking}${svc ? ' · ' + money(svc.total) : ''}`)));
 
   const keep = app.querySelector('#f') ? Object.fromEntries(new FormData(app.querySelector('#f'))) : {};
   // keep the page exactly where the user is: no jump to the top when a day, time or service is picked
@@ -86,7 +90,7 @@ function render() {
       h('div', { class: 'mob' }, pills, list), grid, h('p', { class: 'small muted' }, T.onlyAvail(cfg.freeRescheduleHours))),
     h('section', { class: 'card' }, h('h2', {}, T.yourDetails), form),
     cfg.paymentProvider === 'mock' ? h('div', { class: 'alert' }, T.demoMode) : null);
-  for (const [k, v] of Object.entries(keep)) { const i = app.querySelector(`#f [name="${k}"]`); if (!i || !v) continue; if (i.type === 'checkbox') i.checked = true; else i.value = v; }
+  for (const [k, v] of Object.entries(keep)) { const i = app.querySelector(`#f [name="${k}"]`); if (!i || !v || i.type === 'radio') continue; if (i.type === 'checkbox') i.checked = true; else i.value = v; }
   if (pillsX !== null) app.querySelector('.pills').scrollLeft = pillsX;
   window.scrollTo({ top: y, left: 0, behavior: 'instant' });
   app.style.minHeight = '';
@@ -99,12 +103,13 @@ async function submit(ev) {
   const v = Object.fromEntries(new FormData(f));
   const terms = $('#terms').checked;
   delete v.acceptTerms;
+  delete v.paymentMethod;
   const bad = !v.name?.trim() ? T.errName : !v.mobile?.trim() ? T.errMobile : !terms ? T.errTerms : null;
   if (bad) { err.textContent = bad; err.classList.remove('hide'); return; }
   err.classList.add('hide'); btn.disabled = true; btn.textContent = T.reserving;
   try {
-    const r = await api('POST', '/api/bookings', { ...v, acceptTerms: terms, serviceId: S.svc, slotId: S.slot.id });
-    location.href = r.checkoutUrl;
+    const r = await api('POST', '/api/bookings', { ...v, acceptTerms: terms, serviceId: S.svc, slotId: S.slot.id, paymentMethod: S.pm || 'card' });
+    location.href = r.checkoutUrl || `/status.html?ref=${encodeURIComponent(r.reference)}&t=${encodeURIComponent(r.token)}`;
   } catch (e) {
     err.textContent = e.status === 409 ? T.slotTaken : e.message;
     err.classList.remove('hide'); btn.disabled = false;

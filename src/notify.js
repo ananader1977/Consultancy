@@ -101,7 +101,7 @@ export function createNotifier(ctx) {
 <div style="font-size:12px;color:#6b7280;margin-top:10px;word-break:break-all">${escHtml(manageUrl(b))}</div></div>`;
   const sendBoth = async (b, s, { subject, headline, intro, extraClient = '', attachments = [], ownerNote, ownerSubject, waKind, manage = true }) => {
     const clientHtml = layout(s, headline, `<p>Dear ${escHtml(b.customer_name)},</p><p>${intro}</p>${details(b, s)}${extraClient}${manage ? manageBlock(b) : ''}`);
-    await email({ to: b.email, subject, text: `Dear ${b.customer_name},\n\n${toText(intro)}\n\n${plain(b)}${manage ? `\n\nSave this link to view or change your booking:\n${manageUrl(b)}` : ''}`, html: clientHtml, attachments, bookingId: b.id });
+    await email({ to: b.email, subject, text: `Dear ${b.customer_name},\n\n${toText(intro)}${extraClient ? `\n\n${toText(extraClient.replace(/<\/tr>/g, '\n').replace(/<\/td><td>/g, ': '))}` : ''}\n\n${plain(b)}${manage ? `\n\nSave this link to view or change your booking:\n${manageUrl(b)}` : ''}`, html: clientHtml, attachments, bookingId: b.id });
     const owner = ownerTo(s);
     if (owner) {
       const ownerHtml = layout(s, `[Admin] ${headline}`, `<p>${ownerNote}</p>${details(b, s)}<p style="font-size:14px">Customer: <b>${escHtml(b.customer_name)}</b><br>Mobile: ${escHtml(b.mobile)}<br>Email: ${escHtml(b.email || '-')}</p>`);
@@ -130,6 +130,22 @@ export function createNotifier(ctx) {
       }
       await whatsapp({ booking: b, kind: 'payment', extra: [toText(`${dh()}${money(b.total)}`), url] });
       return { email: b.email || null, ...mail };
+    },
+    async awaitingPayment(b) {
+      const s = ctx.settings();
+      const bank = b.payment_method === 'bank_transfer';
+      const until = b.lock_expires ? fmtStamp(b.lock_expires) : '';
+      const how = bank
+        ? `<p>Please transfer <b>${dh()}${money(b.total)}</b>${until ? ` before <b>${escHtml(until)}</b> (Dubai time)` : ''} to:</p><table style="font-size:14px">${[['Bank', s.bank_name], ['Account name', s.bank_account_name], ['IBAN', s.bank_iban], ['Reference', b.reference]].filter(([, v]) => v).map(([k, v]) => `<tr><td style="padding:3px 12px 3px 0;color:#6b7280">${k}</td><td><b>${escHtml(v)}</b></td></tr>`).join('')}</table><p>Then send us the transfer receipt by WhatsApp or email. Your booking is confirmed once the payment is received.</p>`
+        : `<p>Please pay <b>${dh()}${money(b.total)}</b> in cash at our office${until ? ` before <b>${escHtml(until)}</b> (Dubai time)` : ''}. Your booking is confirmed once the payment is received.</p>`;
+      await sendBoth(b, s, {
+        subject: `Booking reserved - awaiting payment - ${b.reference}`,
+        headline: 'Your time is reserved',
+        intro: bank ? 'Your session is reserved while we wait for your bank transfer.' : 'Your session is reserved while we wait for your cash payment.',
+        extraClient: how,
+        ownerSubject: `New booking awaiting ${bank ? 'bank transfer' : 'cash'} - ${b.reference} - ${b.customer_name}`,
+        ownerNote: `New booking awaiting <b>${bank ? 'bank transfer' : 'cash payment'}</b> (${dh()}${money(b.total)}). When the money is received, open the booking in admin and press <b>Mark paid</b>.`,
+      });
     },
     async bookingConfirmed(b, inv) {
       const s = ctx.settings();
@@ -196,7 +212,7 @@ export function createNotifier(ctx) {
       await sendBoth(b, s, {
         subject: `Booking cancelled - ${b.reference}`,
         headline: 'Your booking was cancelled',
-        intro: `Your booking was cancelled and your payment of <b>${dh()}${money(b.total)}</b> was returned to your card (it can take 5-10 business days to appear). A tax credit note is attached.`,
+        intro: b.payment_method === 'card' ? `Your booking was cancelled and your payment of <b>${dh()}${money(b.total)}</b> was returned to your card (it can take 5-10 business days to appear). A tax credit note is attached.` : `Your booking was cancelled and your payment of <b>${dh()}${money(b.total)}</b> will be returned to you. A tax credit note is attached.`,
         ownerSubject: `Refund processed - ${b.reference}`,
         attachments: inv ? [invoiceAttachment(inv, true)] : [],
         ownerNote: `Refund processed for ${escHtml(b.reference)} (${dh()}${money(b.total)}). Reference: ${escHtml(b.refund_ref || '')}.`,

@@ -28,6 +28,9 @@ const AR = {
   'Too many requests. Please wait a moment and try again.': 'طلبات كثيرة. يرجى الانتظار قليلاً ثم المحاولة مرة أخرى.',
   'Online cancellation is not available. Please contact us.': 'الإلغاء عبر الإنترنت غير متاح. يرجى التواصل معنا.',
   'This payment link has expired. Please contact us for a new link.': 'انتهت صلاحية رابط الدفع. يرجى التواصل معنا للحصول على رابط جديد.',
+  'Please choose a payment method.': 'يرجى اختيار طريقة الدفع.',
+  'Bank transfer is not available. Please choose another payment method.': 'التحويل البنكي غير متاح حالياً. يرجى اختيار طريقة دفع أخرى.',
+  'Cash payment is only available for office sessions.': 'الدفع نقداً متاح لجلسات المكتب فقط.',
   'Internal server error': 'حدث خطأ في الخادم. يرجى المحاولة مرة أخرى.',
 };
 const AR_PATTERNS = [

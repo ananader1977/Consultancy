@@ -41,6 +41,7 @@ export function registerRoutes(app, ctx) {
       lockMinutes: s.lock_minutes, freeRescheduleHours: s.free_reschedule_hours, workStart: s.work_start, workEnd: s.work_end,
       lunchStart: s.lunch_start, closedDays: s.closed_days, slotDays: s.slot_days, platforms: PLATFORMS, timezone: 'Asia/Dubai',
       now: ctx.now(), today: dubaiMidnight(ctx.now()), paymentProvider: ctx.payments.name,
+      payMethods: ['card', ...(s.pay_bank && s.bank_iban ? ['bank_transfer'] : []), ...(s.pay_cash ? ['cash'] : [])], offlineHoldHours: s.offline_hold_hours,
     });
   });
   app.get('/api/contact', (req, res) => {
@@ -265,7 +266,10 @@ export function registerRoutes(app, ctx) {
     res.json({ booking: svc.publicAdminBooking(r.booking), payUrl: r.payUrl, delivery: r.delivery });
   });
   app.post('/api/admin/bookings/:id/whatsapp', admin, async (req, res) => res.json(await svc.whatsappLink(idParam(req), req.admin.email)));
-  app.post('/api/admin/bookings/:id/mark-paid', admin, async (req, res) => res.json({ booking: svc.publicAdminBooking(await svc.markPaidManually(idParam(req), req.admin.email)) }));
+  app.post('/api/admin/bookings/:id/mark-paid', admin, async (req, res) => {
+    const body = await req.json().catch(() => ({}));
+    res.json({ booking: svc.publicAdminBooking(await svc.markPaidManually(idParam(req), req.admin.email, { method: body.method, reference: body.reference })) });
+  });
   app.post('/api/admin/bookings/:id/cancel', admin, (req, res) => res.json({ booking: svc.publicAdminBooking(svc.cancelPending(idParam(req), req.admin.email)) }));
 
   // ======================== admin: slots / services / settings / invoices ========================
@@ -306,6 +310,7 @@ export function registerRoutes(app, ctx) {
         { header: 'Service', key: 'service_name', width: 26 }, { header: 'Type', value: (r) => (r.service_kind === 'online' ? 'Online' : 'Office'), width: 9 },
         { header: 'Platform', key: 'platform', width: 16 }, { header: 'Appointment start', key: 'start_ts', type: 'date', width: 17 }, { header: 'Appointment end', key: 'end_ts', type: 'date', width: 17 },
         { header: 'Status', value: (r) => STATUS[r.status] || r.status, width: 18 }, { header: 'Payment', value: (r) => PAY[r.payment_status] || r.payment_status, width: 10 },
+        { header: 'Payment method', value: (r) => ({ card: 'Card', bank_transfer: 'Bank transfer', cash: 'Cash' }[r.payment_method] || r.payment_method), width: 15 },
         { header: 'Net (AED)', key: 'net', type: 'money', width: 11 }, { header: 'VAT (AED)', key: 'vat', type: 'money', width: 11 }, { header: 'Total (AED)', key: 'total', type: 'money', width: 12 },
         { header: 'Paid at', key: 'paid_at', type: 'date', width: 17 }, { header: 'Payment reference', key: 'payment_ref', width: 22 }, { header: 'Invoice no.', key: 'invoice_number', width: 18 },
         { header: 'Times changed', key: 'reschedule_count', type: 'number', width: 13 }, { header: 'Meeting link', key: 'meeting_link', width: 30 },

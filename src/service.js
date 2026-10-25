@@ -7,6 +7,7 @@ import { cleanMobile, isEmail, clampStr, whatsappNumber } from './util.js';
 import { safeEqual, hmac } from './auth.js';
 
 export const PLATFORMS = ['Phone call', 'Zoom', 'Botim'];
+export const PAY_METHODS = ['card', 'bank_transfer', 'cash'];
 const LEGACY_PLATFORMS = ['Microsoft Teams']; // kept valid for bookings made before Oct 2026
 const ACTIVE_SQL = "('pending','confirmed','refund_requested')";
 const isUnique = (e) => /UNIQUE/i.test(String(e?.message));
@@ -127,6 +128,12 @@ export function createService(ctx) {
     const slotId = Number(input.slotId);
     if (!Number.isInteger(slotId)) throw new HttpError(400, 'Please choose a time slot.');
     const accepted = input.acceptTerms === true;
+    const method = input.paymentMethod === undefined ? 'card' : String(input.paymentMethod);
+    if (!PAY_METHODS.includes(method)) throw new HttpError(400, 'Please choose a payment method.');
+    if (actor === 'customer') {
+      if (method === 'bank_transfer' && !(s.pay_bank && s.bank_iban)) throw new HttpError(400, 'Bank transfer is not available. Please choose another payment method.');
+      if (method === 'cash' && !(s.pay_cash && service.kind === 'offline')) throw new HttpError(400, 'Cash payment is only available for office sessions.');
+    }
     if (actor === 'customer' && !accepted) throw new HttpError(400, 'Please read and accept the Terms & Conditions to continue.');
     const price = breakdown(service.price, s);
     const now = ctx.now();
@@ -150,11 +157,20 @@ export function createService(ctx) {
         throw e;
       }
       const id = Number(info.lastInsertRowid);
-      q('UPDATE bookings SET reference=?, terms_accepted_at=? WHERE id=?').run(`CO-${T.yymm(now)}-${String(id).padStart(5, '0')}`, accepted ? now : null, id);
+      q('UPDATE bookings SET reference=?, terms_accepted_at=?, payment_method=? WHERE id=?').run(`CO-${T.yymm(now)}-${String(id).padStart(5, '0')}`, accepted ? now : null, method, id);
       return bookingById(id);
     });
     audit(actor, 'booking.created', booking.id, `${booking.service_name} ${T.fmtStamp(booking.start_ts)}`);
     if (skipCheckout) return { booking, checkoutUrl: null };
+    if (method !== 'card') {
+      // bank transfer / cash: keep the time reserved while the client pays; the admin confirms with "Mark paid"
+      const until = Math.min(booking.start_ts, now + s.offline_hold_hours * T.HOUR);
+      q('UPDATE bookings SET lock_expires=?, updated_at=? WHERE id=?').run(until, ctx.now(), booking.id);
+      const nb = bookingById(booking.id);
+      audit(actor, 'booking.awaiting_payment', nb.id, method);
+      ctx.background(ctx.notifier.awaitingPayment(nb));
+      return { booking: nb, checkoutUrl: null };
+    }
 
     try {
       const session = await ctx.payments.createCheckout(booking);
@@ -186,7 +202,7 @@ export function createService(ctx) {
       await ctx.payments.expireSession(b.payment_session_id).catch(() => {});
     }
     const session = await ctx.payments.createCheckout(b);
-    q('UPDATE bookings SET payment_session_id=?, updated_at=? WHERE id=?').run(session.id, ctx.now(), b.id);
+    q("UPDATE bookings SET payment_session_id=?, payment_method='card', updated_at=? WHERE id=?").run(session.id, ctx.now(), b.id);
     audit('customer', 'payment.link_opened', b.id);
     return { paid: false, checkoutUrl: session.url };
   }
@@ -355,6 +371,9 @@ export function createService(ctx) {
       freeRescheduleHours: s.free_reschedule_hours,
       invoiceToken: b.invoice_number ? invoiceToken(b.invoice_number) : null,
       hasEmail: !!b.email,
+      paymentMethod: b.payment_method,
+      contactPhone: whatsappNumber(s.contact_phone || ''),
+      bank: b.status === 'pending' && b.payment_method === 'bank_transfer' ? { name: s.bank_name, accountName: s.bank_account_name, iban: s.bank_iban } : null,
     };
   }
   const secret = () => q("SELECT value FROM settings WHERE key='_secret'").get().value;
@@ -516,18 +535,30 @@ export function createService(ctx) {
     return cb;
   }
 
-  async function markPaidManually(id, actor = 'admin') {
+  async function markPaidManually(id, actor = 'admin', { method, reference = '' } = {}) {
     const b = mustBooking(id);
     if (b.payment_status !== 'unpaid') throw new HttpError(409, 'This booking is already settled.');
-    const r = await handlePayment(id, `MANUAL-${ctx.now()}`, { actor });
+    const m = method === undefined ? b.payment_method : String(method);
+    if (!PAY_METHODS.includes(m)) throw new HttpError(400, 'Payment method must be card, bank_transfer or cash.');
+    q('UPDATE bookings SET payment_method=? WHERE id=?').run(m, id);
+    const ref = clampStr(reference, 60).replace(/[^\w\-./ ]/g, '');
+    const r = await handlePayment(id, `MANUAL-${m}-${ref || ctx.now()}`, { actor });
     if (r.conflict) throw new HttpError(409, 'The slot is no longer available for this booking.');
     return r.booking;
   }
 
   async function adminCreateBooking(input, actor, { markPaid = false } = {}) {
     const { booking } = await createBooking(input, { actor, skipCheckout: true });
-    if (markPaid) return { booking: await markPaidManually(booking.id, actor), payUrl: null };
-    // not paid yet: send the client the payment link right away (slot held for payment_link_hours)
+    if (markPaid) return { booking: await markPaidManually(booking.id, actor, { method: input.paymentMethod || 'cash', reference: input.paymentReference }), payUrl: null };
+    if (booking.payment_method !== 'card') {
+      // bank transfer / cash: hold the time and send the client the payment instructions
+      const s = ctx.settings();
+      q('UPDATE bookings SET lock_expires=?, updated_at=? WHERE id=?').run(Math.min(booking.start_ts, ctx.now() + s.offline_hold_hours * T.HOUR), ctx.now(), booking.id);
+      const nb = bookingById(booking.id);
+      await ctx.notifier.awaitingPayment(nb);
+      return { booking: nb, payUrl: null };
+    }
+    // card, not paid yet: send the client the payment link right away (slot held for payment_link_hours)
     const r = await sendPaymentLink(booking.id, actor);
     return { booking: r.booking, payUrl: r.payUrl, delivery: r.delivery };
   }
@@ -558,7 +589,7 @@ export function createService(ctx) {
   const publicAdminBooking = (b) => ({
     id: b.id, reference: b.reference, customer_name: b.customer_name, mobile: b.mobile, email: b.email, service_name: b.service_name,
     service_kind: b.service_kind, platform: b.platform, slot_id: b.slot_id, start: b.start_ts, end: b.end_ts, status: b.status,
-    payment_status: b.payment_status, total: b.total, vat: b.vat, net: b.net, invoice_number: b.invoice_number, meeting_link: b.meeting_link,
+    payment_status: b.payment_status, payment_method: b.payment_method, total: b.total, vat: b.vat, net: b.net, invoice_number: b.invoice_number, meeting_link: b.meeting_link,
     reschedule_count: b.reschedule_count, refund_reason: b.refund_reason, refund_ref: b.refund_ref, admin_notes: b.admin_notes,
     lock_expires: b.lock_expires, terms_accepted_at: b.terms_accepted_at, paid_at: b.paid_at, created_at: b.created_at, payment_ref: b.payment_ref,
   });
@@ -637,6 +668,12 @@ export function createService(ctx) {
       free_reschedule_hours: (v) => intIn(v, 0, 720, 'Free reschedule hours'),
       max_changes: (v) => intIn(v, 0, 20, 'Max changes'),
       cancel_hours: (v) => intIn(v, 0, 720, 'Cancellation allowed until (hours before)'),
+      pay_bank: (v) => (v === true || v === '1' || v === 'true' ? '1' : '0'),
+      pay_cash: (v) => (v === true || v === '1' || v === 'true' ? '1' : '0'),
+      bank_name: (v) => str(v, 100),
+      bank_account_name: (v) => str(v, 120),
+      bank_iban: (v) => { v = str(v, 40).replace(/\s+/g, '').toUpperCase(); if (v && !/^AE\d{21}$/.test(v)) throw new HttpError(400, 'IBAN must be a UAE IBAN: AE followed by 21 digits.'); return v; },
+      offline_hold_hours: (v) => intIn(v, 1, 168, 'Bank transfer / cash hold (hours)'),
       payment_link_hours: (v) => intIn(v, 1, 168, 'Payment link validity (hours)'),
       change_window_days: (v) => intIn(v, 1, 365, 'Change window days'),
       slot_days: (v) => intIn(v, 7, 180, 'Booking window days'),

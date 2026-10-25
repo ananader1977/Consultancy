@@ -95,7 +95,8 @@ export function renderInvoicePdf(inv, { creditNote = false, contact = null } = {
   label(`Total (AED)`, money(sign * inv.total), true);
 
   y += 24;
-  pdf.text(creditNote ? 'This tax credit note reverses the invoice above as the payment was returned to the original card.' : 'Paid in full by card. Thank you.', L, y, { size: 10, fill: INK });
+  const via = /^MANUAL-bank_transfer/.test(inv.payment_ref || '') ? 'bank transfer' : /^MANUAL-cash/.test(inv.payment_ref || '') ? 'cash' : 'card';
+  pdf.text(creditNote ? `This tax credit note reverses the invoice above as the payment was returned${via === 'card' ? ' to the original card' : ''}.` : `Paid in full ${via === 'cash' ? 'in cash' : `by ${via}`}. Thank you.`, L, y, { size: 10, fill: INK });
   pdf.line(L, 780, R, 780, { stroke: LINE });
   pdf.text(inv.supplier_name, PAGE_W / 2, 795, { size: 8, bold: true, align: 'center', fill: MUTED });
   const contactFoot = contact ? [contact.contact_phone, contact.contact_email, contact.facebook && `instagram.com/${contact.facebook}`].filter(Boolean).join('  |  ') : '';

@@ -123,19 +123,21 @@ const VIEWS = {
   async settings(el) {
     const r = await A('GET', '/settings'); const s = r.settings;
     const fields = [['company_name', 'Company name'], ['company_name_ar', 'Company name (Arabic)'], ['company_address', 'Address'], ['company_trn', 'Tax Registration Number (TRN)'], ['owner_name', 'Owner name'], ['owner_email', 'Admin notification email (new & modified bookings)'], ['contact_phone', 'Contact phone / WhatsApp (shown to clients)'], ['contact_email', 'Contact email (shown to clients)'], ['facebook', 'Instagram'], ['vat_rate', 'VAT %'],
-      ['work_start', 'Day starts (hour)'], ['work_end', 'Day ends (hour)'], ['lunch_start', 'Lunch hour (-1 = none)'], ['lock_minutes', 'Slot lock (minutes)'], ['free_reschedule_hours', 'Client changes allowed until (hours before)'], ['cancel_hours', 'Client cancellation allowed until (hours before)'], ['max_changes', 'Max client changes per booking'], ['payment_link_hours', 'Payment link valid for (hours)'], ['change_window_days', 'Within (calendar days)'],
+      ['work_start', 'Day starts (hour)'], ['work_end', 'Day ends (hour)'], ['lunch_start', 'Lunch hour (-1 = none)'], ['lock_minutes', 'Slot lock (minutes)'], ['free_reschedule_hours', 'Client changes allowed until (hours before)'], ['cancel_hours', 'Client cancellation allowed until (hours before)'], ['max_changes', 'Max client changes per booking'], ['payment_link_hours', 'Payment link valid for (hours)'], ['offline_hold_hours', 'Bank transfer / cash: hold time (hours)'], ['bank_name', 'Bank name (for transfers)'], ['bank_account_name', 'Account name (for transfers)'], ['bank_iban', 'IBAN (for transfers)'], ['change_window_days', 'Within (calendar days)'],
       ['reminder_hours', 'Admin reminder (hours before)'], ['slot_days', 'Booking window (days)'], ['zoom_link', 'Default Zoom link'], ['closed_days', 'Closed weekdays (0=Sun, comma separated)']];
     const inputs = Object.fromEntries(fields.map(([k]) => [k, h('input', { value: Array.isArray(s[k]) ? s[k].join(',') : s[k] ?? '' })]));
     inputs.company_name_ar.dir = 'rtl';
     const inc = h('input', { type: 'checkbox', checked: !!s.prices_include_vat });
+    const payBank = h('input', { type: 'checkbox', checked: !!s.pay_bank }), payCash = h('input', { type: 'checkbox', checked: !!s.pay_cash });
     const terms = h('textarea', { rows: 14, value: s.terms_text || '' });
     const termsAr = h('textarea', { rows: 14, value: s.terms_text_ar || '', dir: 'rtl', lang: 'ar' });
     clear(el).append(h('div', { class: 'card' }, h('h2', {}, 'Settings'), h('div', { class: 'row' }, fields.map(([k, l]) => h('div', {}, h('label', {}, l), inputs[k]))),
       h('label', {}, inc, ' Listed prices already include VAT'),
+      h('label', {}, payBank, ' Clients can choose bank transfer (shown only when an IBAN is filled in)'), h('label', {}, payCash, ' Clients can choose cash at the office (office sessions only)'),
       h('label', {}, 'Terms & Conditions (shown to clients, who must accept before payment)'), terms,
       h('label', {}, 'Terms & Conditions in Arabic (shown on the Arabic pages)'), termsAr,
       h('p', { class: 'small muted' }, 'Blank line between sections; the first line of each section is its heading. Preview: ', h('a', { href: '/terms.html?lang=en', target: '_blank', rel: 'noopener' }, 'English'), ' · ', h('a', { href: '/terms.html?lang=ar', target: '_blank', rel: 'noopener' }, 'العربية')),
-      h('p', {}, h('button', { class: 'btn', onclick: () => run(async () => { await A('PUT', '/settings', { ...Object.fromEntries(fields.map(([k]) => [k, inputs[k].value])), prices_include_vat: inc.checked, terms_text: terms.value, terms_text_ar: termsAr.value }); S.cfg = await api('GET', '/api/config'); await A('POST', '/slots/generate', {}); }, 'Settings saved') }, 'Save settings'))),
+      h('p', {}, h('button', { class: 'btn', onclick: () => run(async () => { await A('PUT', '/settings', { ...Object.fromEntries(fields.map(([k]) => [k, inputs[k].value])), prices_include_vat: inc.checked, pay_bank: payBank.checked, pay_cash: payCash.checked, terms_text: terms.value, terms_text_ar: termsAr.value }); S.cfg = await api('GET', '/api/config'); await A('POST', '/slots/generate', {}); }, 'Settings saved') }, 'Save settings'))),
       h('div', { class: 'card' }, h('h2', {}, 'Integrations'), h('dl', { class: 'kv' },
         h('dt', {}, 'Payments'), h('dd', {}, r.provider === 'ziina' ? (r.ziinaTest ? 'Ziina – TEST mode (no real charges)' : 'Ziina (live card payments)') : r.provider === 'stripe' ? 'Stripe (live cards)' : 'Demo (simulated) – set PAYMENT_PROVIDER=ziina'),
         h('dt', {}, 'Email (SMTP)'), h('dd', {}, r.smtpConfigured ? 'Configured' : 'Not configured – emails are only logged', ' ', h('button', { class: 'btn alt sm', onclick: () => run(async () => { const t = await A('POST', '/test-email', {}); toast(t.status === 'sent' ? `Test email sent to ${t.to}` : `Not sent to ${t.to}: ${t.error}`, 6000); }) }, 'Send test email')),
@@ -169,6 +171,19 @@ async function approve(b) { if (confirm(`Refund AED ${Number(b.total).toFixed(2)
 async function reject(b) { if (await run(() => A('POST', `/bookings/${b.id}/refund/reject`, {}), 'Refund rejected')) { dlg.close(); refresh(); } }
 
 const deliveryText = (d) => !d ? '' : d.status === 'sent' ? `Email sent to ${d.email}.` : d.status === 'none' ? 'No email on this booking (WhatsApp only).' : `EMAIL NOT SENT to ${d.email}: ${d.error || d.status}`;
+const PM_LABEL = { card: 'Card', bank_transfer: 'Bank transfer', cash: 'Cash' };
+function markPaidDialog(b) {
+  const method = h('select', {}, Object.entries(PM_LABEL).map(([v, l]) => h('option', { value: v, selected: v === (b.payment_method || 'cash') }, l)));
+  const ref = h('input', { placeholder: 'e.g. bank transfer reference / receipt no. (optional)', maxlength: 60 });
+  modal(h('h2', {}, `Mark ${b.reference} as paid`),
+    h('p', { class: 'muted' }, `${b.customer_name} · ${money(b.total)}. This confirms the booking, issues the tax invoice and notifies the client.`),
+    h('label', {}, 'Paid by'), method, h('label', {}, 'Reference'), ref,
+    h('p', {}, h('button', { class: 'btn ok', onclick: async () => {
+      if (!confirm(`Confirm payment of AED ${Number(b.total).toFixed(2)} by ${PM_LABEL[method.value].toLowerCase()} for ${b.reference}?`)) return;
+      if (await run(() => A('POST', `/bookings/${b.id}/mark-paid`, { method: method.value, reference: ref.value }), 'Marked paid')) { dlg.close(); refresh(); }
+    } }, 'Confirm payment')));
+}
+
 async function detail(id) {
   const r = await run(() => A('GET', `/bookings/${id}`)); if (!r) return;
   const b = r.booking;
@@ -184,11 +199,11 @@ async function detail(id) {
     if (r) refresh();
   } }, b.status === 'pending' ? 'Send link by WhatsApp' : 'WhatsApp client'));
   if (b.status === 'pending') btns.push(h('button', { class: 'btn', onclick: async () => { const r = await run(async () => { await save(); return A('POST', `/bookings/${id}/payment-link`, {}); }); if (r) { toast(`Payment link ready (valid until ${fmtStamp(r.booking.lock_expires)}, copied). ${deliveryText(r.delivery)}`, 12000); try { await navigator.clipboard.writeText(r.payUrl); } catch { /* clipboard blocked */ } refresh(); } } }, 'Send payment link'));
-  if (b.status === 'pending') btns.push(h('button', { class: 'btn ok', onclick: async () => { if (await run(() => A('POST', `/bookings/${id}/mark-paid`, {}), 'Marked paid')) { dlg.close(); refresh(); } } }, 'Mark paid'), h('button', { class: 'btn danger', onclick: async () => { if (await run(() => A('POST', `/bookings/${id}/cancel`, {}), 'Cancelled')) { dlg.close(); refresh(); } } }, 'Cancel'));
+  if (b.status === 'pending') btns.push(h('button', { class: 'btn ok', onclick: () => markPaidDialog(b) }, 'Mark paid'), h('button', { class: 'btn danger', onclick: async () => { if (await run(() => A('POST', `/bookings/${id}/cancel`, {}), 'Cancelled')) { dlg.close(); refresh(); } } }, 'Cancel'));
   if (b.status === 'refund_requested') btns.push(h('button', { class: 'btn ok', onclick: () => approve(b) }, 'Approve cancellation'), h('button', { class: 'btn danger', onclick: () => reject(b) }, 'Reject'));
   if (b.status === 'confirmed') btns.push(h('button', { class: 'btn danger', onclick: () => approve(b) }, 'Cancel & return payment'));
   modal(h('h2', {}, b.reference, ' ', badge(b.status), ' ', badge(b.payment_status)),
-    h('dl', { class: 'kv' }, h('dt', {}, 'When'), h('dd', {}, fmtRange(b.start, b.end)), h('dt', {}, 'Service'), h('dd', {}, `${b.service_name}${b.platform ? ' · ' + b.platform : ''}`), h('dt', {}, 'Total'), h('dd', {}, money(b.total)),
+    h('dl', { class: 'kv' }, h('dt', {}, 'When'), h('dd', {}, fmtRange(b.start, b.end)), h('dt', {}, 'Service'), h('dd', {}, `${b.service_name}${b.platform ? ' · ' + b.platform : ''}`), h('dt', {}, 'Total'), h('dd', {}, money(b.total)), h('dt', {}, 'Payment method'), h('dd', {}, PM_LABEL[b.payment_method] || b.payment_method || 'Card'),
       r.invoice ? [h('dt', {}, 'Invoice'), h('dd', {}, r.invoice.number, ' ', h('a', { href: `/api/admin/invoices/${r.invoice.id}/pdf`, target: '_blank', rel: 'noopener' }, 'PDF'))] : null,
       b.status === 'pending' && b.lock_expires ? [h('dt', {}, 'Pay by'), h('dd', {}, fmtStamp(b.lock_expires))] : null,
       h('dt', {}, 'Terms accepted'), h('dd', {}, b.terms_accepted_at ? fmtStamp(b.terms_accepted_at) : 'n/a (created by admin)'),
@@ -216,11 +231,12 @@ async function newBooking(slot) {
   const cal = slot ? [slot] : (await A('GET', `/calendar?from=${dateKey(Math.max(S.cfg.today, Date.now()))}&to=${dateKey(S.cfg.today + 28 * DAY)}`)).slots.filter((s) => !s.booking && !s.blocked && s.start > Date.now());
   const f = h('form', { onsubmit: async (e) => { e.preventDefault(); const v = Object.fromEntries(new FormData(e.target)); v.markPaid = v.markPaid === 'on'; v.serviceId = Number(v.serviceId); v.slotId = Number(v.slotId);
     const svc = S.cfg.services.find((x) => x.id === v.serviceId); if (svc?.kind !== 'online') delete v.platform;
-    const r = await run(() => A('POST', '/bookings', v)); if (r) { toast(r.payUrl ? `Booking created – payment link copied. ${deliveryText(r.delivery)}` : 'Booking created and confirmed', 12000); if (r.payUrl) { try { await navigator.clipboard.writeText(r.payUrl); } catch { /* clipboard blocked */ } } dlg.close(); refresh(); } } },
+    const r = await run(() => A('POST', '/bookings', v)); if (r) { toast(r.payUrl ? `Booking created – payment link copied. ${deliveryText(r.delivery)}` : r.booking.status === 'pending' ? 'Booking created – waiting for the client\'s payment (press Mark paid when received)' : 'Booking created and confirmed', 12000); if (r.payUrl) { try { await navigator.clipboard.writeText(r.payUrl); } catch { /* clipboard blocked */ } } dlg.close(); refresh(); } } },
     h('label', {}, 'Slot'), h('select', { name: 'slotId' }, cal.map((s) => h('option', { value: s.id }, `${dow(s.start)} ${dayLabel(s.start)} ${fmtTime(s.start)}`))),
     h('label', {}, 'Service'), h('select', { name: 'serviceId' }, S.cfg.services.map((x) => h('option', { value: x.id }, `${x.name} – ${money(x.total)}`))),
     h('label', {}, 'Platform (online only)'), h('select', { name: 'platform' }, S.cfg.platforms.map((p) => h('option', {}, p))),
     h('label', {}, 'Name'), h('input', { name: 'name', required: true }), h('label', {}, 'Mobile'), h('input', { name: 'mobile', required: true }), h('label', {}, 'Email (optional)'), h('input', { name: 'email', type: 'email' }),
-    h('label', {}, h('input', { name: 'markPaid', type: 'checkbox' }), ' Already paid (cash / bank transfer) – confirm and issue invoice'), h('p', {}, h('button', { class: 'btn' }, 'Create booking')));
+    h('label', {}, 'Payment method'), h('select', { name: 'paymentMethod' }, Object.entries(PM_LABEL).map(([v, l]) => h('option', { value: v, selected: v === 'cash' }, l))),
+    h('label', { class: 'terms' }, h('input', { name: 'markPaid', type: 'checkbox' }), h('span', {}, 'Already paid – confirm now and issue the tax invoice (otherwise the client gets a card payment link)')), h('p', {}, h('button', { class: 'btn' }, 'Create booking')));
   modal(h('h2', {}, 'New booking'), f);
 }
