@@ -17,7 +17,7 @@ async function load() {
     stop = countdown(cd, b.lockExpires, load);
   }
   if (b.status === 'expired') kids.push(h('div', { class: 'alert bad' }, T.expired, h('a', { href: '/' }, T.bookAgain)));
-  if (qs('cancelled') && b.status === 'pending') kids.push(h('div', { class: 'alert' }, T.payCancelled));
+  if ((qs('cancelled') || qs('failed')) && b.status === 'pending') kids.push(h('div', { class: 'alert' }, T.payCancelled));
   kids.push(h('div', { class: 'card' }, h('dl', { class: 'kv' },
     h('dt', {}, T.reference), h('dd', {}, h('b', {}, b.reference)), h('dt', {}, T.status), h('dd', {}, badge(b.status), ' ', badge(b.paymentStatus)),
     h('dt', {}, T.service), h('dd', {}, (AR ? (b.kind === 'online' ? (b.platform ? `جلسة عن بُعد (${T.platformName(b.platform)})` : T.svcOnline) : T.svcOffline) : b.service + (b.platform ? ` (${b.platform})` : ''))), h('dt', {}, T.when), h('dd', {}, fmtRange(b.start, b.end)),

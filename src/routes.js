@@ -132,6 +132,20 @@ export function registerRoutes(app, ctx) {
     res.json({ received: true });
   });
 
+  // Ziina webhook: signature + sender IP checked, then the payment is re-read from Ziina (the payload itself is not trusted)
+  app.post('/api/webhooks/ziina', async (req, res) => {
+    if (ctx.payments.name !== 'ziina') throw new HttpError(404, 'Not found');
+    const event = ctx.payments.verifyWebhook(await req.rawBody(), req.headers['x-hmac-signature'], config.trustProxy ? ip(req) : '');
+    if (event.event === 'payment_intent.status.updated' && event.data?.id) {
+      const bookingId = ctx.payments.bookingForIntent(event.data.id);
+      if (bookingId) {
+        const r = await ctx.payments.retrieve(event.data.id);
+        if (r.paid) await svc.handlePayment(bookingId, r.paymentRef, { actor: 'ziina-webhook' });
+      }
+    }
+    res.json({ received: true });
+  });
+
   // demo checkout (PAYMENT_PROVIDER=mock only)
   app.get('/api/pay/mock/:sid', (req, res) => {
     if (ctx.payments.name !== 'mock') throw new HttpError(404, 'Not found');
@@ -267,7 +281,7 @@ export function registerRoutes(app, ctx) {
   app.get('/api/admin/settings', admin, (req, res) => {
     const s = ctx.settings();
     const { _secret, feed_key, ...rest } = s;
-    res.json({ settings: rest, feedUrl: `${config.baseUrl}/calendar.ics?key=${feed_key}`, provider: ctx.payments.name, smtpConfigured: !!config.smtp.host, whatsappConfigured: !!(config.whatsapp.token && config.whatsapp.phoneNumberId), baseUrl: config.baseUrl });
+    res.json({ settings: rest, feedUrl: `${config.baseUrl}/calendar.ics?key=${feed_key}`, provider: ctx.payments.name, ziinaTest: ctx.payments.name === 'ziina' && config.ziina.test, smtpConfigured: !!config.smtp.host, whatsappConfigured: !!(config.whatsapp.token && config.whatsapp.phoneNumberId), baseUrl: config.baseUrl });
   });
   app.put('/api/admin/settings', admin, async (req, res) => {
     const s = svc.updateSettings(await req.json(), req.admin.email);

@@ -52,5 +52,8 @@ export function startJobs(ctx) {
   timers.push(setInterval(safe('reminders', () => ctx.service.runReminders()), 60 * 1000));
   timers.push(setInterval(safe('slots', () => ctx.service.generateSlots()), 6 * 3600 * 1000));
   for (const t of timers) t.unref();
+  if (ctx.payments.registerWebhook) {
+    ctx.payments.registerWebhook().then(() => console.log('[ziina] webhook registered')).catch((e) => console.error('[ziina] webhook registration failed:', e.message));
+  }
   return () => timers.forEach(clearInterval);
 }

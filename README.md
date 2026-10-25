@@ -44,3 +44,18 @@ Docker: `docker build -t consultancy . && docker run -p 3000:3000 -v $PWD/data:/
 ## Hosting (website)
 This app needs a Node server and a database, so GitHub Pages cannot host it. Use `render.yaml`:
 Render → New → Blueprint → select this repo → fill `BASE_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`. Deploys automatically on every push.
+
+
+## Live card payments with Ziina
+
+1. In the Ziina business app/dashboard create an **API key** with access to payment intents, refunds and webhooks.
+2. In Render > Environment set:
+   - `PAYMENT_PROVIDER=ziina`
+   - `ZIINA_API_KEY=<your key>`
+   - `ZIINA_WEBHOOK_SECRET=<any long random text>`
+   - `ZIINA_TEST=true` for a trial run (no real charges), then delete it (or set `false`) to go live
+   - remove `ALLOW_MOCK_PAYMENTS`
+3. Redeploy. On start the app registers `https://<your site>/api/webhooks/ziina` with Ziina.
+
+Security: clients pay on Ziina's own hosted page (card details never reach this app); webhooks are accepted only with a valid
+HMAC-SHA256 signature from Ziina's published IPs, and every payment is re-checked with the Ziina API before a booking is confirmed.

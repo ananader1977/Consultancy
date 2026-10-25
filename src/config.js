@@ -12,9 +12,15 @@ export function loadConfig(env = process.env) {
     sessionSecret: env.SESSION_SECRET || '', // if empty, one is generated and stored in the DB
     adminEmail: env.ADMIN_EMAIL || '',
     adminPassword: env.ADMIN_PASSWORD || '',
-    // 'stripe' for real card payments, 'mock' for a built-in demo checkout (never use mock in production)
+    // 'ziina' or 'stripe' for real card payments, 'mock' for a built-in demo checkout (never use mock in production)
     paymentProvider: (env.PAYMENT_PROVIDER || 'mock').toLowerCase(),
     allowMockInProduction: env.ALLOW_MOCK_PAYMENTS === 'true',
+    ziina: {
+      apiKey: (env.ZIINA_API_KEY || '').trim(),
+      webhookSecret: (env.ZIINA_WEBHOOK_SECRET || '').trim(),
+      test: env.ZIINA_TEST === 'true', // test payments: nothing is charged
+      baseUrl: env.ZIINA_API_BASE || 'https://api-v2.ziina.com/api',
+    },
     stripe: {
       secretKey: env.STRIPE_SECRET_KEY || '',
       webhookSecret: env.STRIPE_WEBHOOK_SECRET || '',
@@ -47,10 +53,12 @@ export function loadConfig(env = process.env) {
 
 export function validateConfig(cfg) {
   const problems = [];
-  if (cfg.paymentProvider !== 'mock' && cfg.paymentProvider !== 'stripe') {
-    problems.push(`PAYMENT_PROVIDER must be "stripe" or "mock" (got "${cfg.paymentProvider}")`);
+  if (!['mock', 'stripe', 'ziina'].includes(cfg.paymentProvider)) {
+    problems.push(`PAYMENT_PROVIDER must be "ziina", "stripe" or "mock" (got "${cfg.paymentProvider}")`);
   }
   if (cfg.paymentProvider === 'stripe' && !cfg.stripe.secretKey) problems.push('STRIPE_SECRET_KEY is required when PAYMENT_PROVIDER=stripe');
+  if (cfg.paymentProvider === 'ziina' && !cfg.ziina.apiKey) problems.push('ZIINA_API_KEY is required when PAYMENT_PROVIDER=ziina');
+  if (cfg.paymentProvider === 'ziina' && !cfg.ziina.webhookSecret) problems.push('ZIINA_WEBHOOK_SECRET is required when PAYMENT_PROVIDER=ziina (any long random text)');
   if (cfg.paymentProvider === 'mock' && cfg.nodeEnv === 'production' && !cfg.allowMockInProduction) {
     problems.push('PAYMENT_PROVIDER=mock is for demos only and would accept bookings without real payment. Set PAYMENT_PROVIDER=stripe (or ALLOW_MOCK_PAYMENTS=true to override knowingly).');
   }

@@ -22,6 +22,12 @@ services:
         value: mock          # demo payments; switch to stripe + keys when going live
       - key: ALLOW_MOCK_PAYMENTS
         value: "true"        # Render sets NODE_ENV=production; this allows demo payments until Stripe is set up
+      - key: ZIINA_API_KEY     # Ziina dashboard > Developers > API key (needs write_payment_intents, write_refunds, write_webhooks)
+        sync: false
+      - key: ZIINA_WEBHOOK_SECRET  # any long random text; the app registers the webhook with Ziina on start
+        sync: false
+      - key: ZIINA_TEST        # "true" = Ziina test mode (no real charges); remove or "false" when going live
+        sync: false
       - key: SMTP_HOST        # email server of info@lamaalsafadi.ae (e.g. smtppro.zoho.com / smtp.office365.com / smtp.gmail.com)
         sync: false
       - key: SMTP_PORT
