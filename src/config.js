@@ -13,8 +13,8 @@ export function loadConfig(env = process.env) {
     adminEmail: env.ADMIN_EMAIL || '',
     adminPassword: env.ADMIN_PASSWORD || '',
     // 'ziina' or 'stripe' for real card payments, 'mock' for a built-in demo checkout (never use mock in production)
-    paymentProvider: (env.PAYMENT_PROVIDER || 'mock').toLowerCase(),
-    allowMockInProduction: env.ALLOW_MOCK_PAYMENTS === 'true',
+    paymentProvider: (env.PAYMENT_PROVIDER || 'mock').trim().toLowerCase() || 'mock',
+    allowMockInProduction: /^(true|yes|1)$/i.test(String(env.ALLOW_MOCK_PAYMENTS || '').trim()),
     ziina: {
       apiKey: (env.ZIINA_API_KEY || '').trim(),
       webhookSecret: (env.ZIINA_WEBHOOK_SECRET || '').trim(),
@@ -60,7 +60,7 @@ export function validateConfig(cfg) {
   if (cfg.paymentProvider === 'ziina' && !cfg.ziina.apiKey) problems.push('ZIINA_API_KEY is required when PAYMENT_PROVIDER=ziina');
   if (cfg.paymentProvider === 'ziina' && !cfg.ziina.webhookSecret) problems.push('ZIINA_WEBHOOK_SECRET is required when PAYMENT_PROVIDER=ziina (any long random text)');
   if (cfg.paymentProvider === 'mock' && cfg.nodeEnv === 'production' && !cfg.allowMockInProduction) {
-    problems.push('PAYMENT_PROVIDER=mock is for demos only and would accept bookings without real payment. Set PAYMENT_PROVIDER=stripe (or ALLOW_MOCK_PAYMENTS=true to override knowingly).');
+    problems.push('PAYMENT_PROVIDER=mock is for demos only and would accept bookings without real payment. Set PAYMENT_PROVIDER=ziina for real payments, or ALLOW_MOCK_PAYMENTS=true to keep demo mode.');
   }
   return problems;
 }
