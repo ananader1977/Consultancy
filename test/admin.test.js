@@ -64,8 +64,8 @@ describe('admin operations', () => {
     assert.equal((await app.book(s.id)).status, 201);
   });
 
-  test('admin can reschedule inside 24h (customer cannot)', async () => {
-    const b = await app.book(app.slot(0, 16).id); // today 16:00, 8h away
+  test('admin can reschedule inside 3h (customer cannot)', async () => {
+    const b = await app.book(app.slot(0, 10).id); // today 10:00, 2h away
     await app.pay(b);
     const row = app.dbBooking(b.body.reference);
     const mine = await app.call('POST', `/api/manage/${b.body.reference}/reschedule`, { t: b.body.token, slotId: app.slot(0, 17).id });
@@ -75,15 +75,15 @@ describe('admin operations', () => {
     assert.equal(app.dbBooking(b.body.reference).start_ts, app.slot(0, 17).start_ts);
   });
 
-  test('clients cannot cancel online; admin can still cancel with a refund -> credit note, slot released', async () => {
+  test('clients can request cancellation 24h+ before; admin approves -> payment returned, credit note, slot released', async () => {
     const b = await app.book(app.slot(3, 10).id, { email: 'refund@example.com' });
     await app.pay(b);
     const req = await app.call('POST', `/api/manage/${b.body.reference}/refund-request`, { t: b.body.token, reason: 'Cannot attend' });
-    assert.equal(req.status, 403);
+    assert.equal(req.status, 200);
+    assert.equal(app.dbBooking(b.body.reference).status, 'refund_requested');
     const view = await app.call('GET', `/api/manage/${b.body.reference}?t=${b.body.token}`);
-    assert.ok(!('canRequestRefund' in view.body));
+    assert.equal(view.body.status, 'refund_requested');
     const row = app.dbBooking(b.body.reference);
-    assert.equal(row.status, 'confirmed');
     const ap = await A('POST', `/api/admin/bookings/${row.id}/refund/approve`);
     assert.equal(ap.status, 200);
     const after = app.dbBooking(b.body.reference);
@@ -93,8 +93,21 @@ describe('admin operations', () => {
     const ids = (await app.call('GET', '/api/slots?from=2026-10-22&to=2026-10-23')).body.slots.map((x) => x.id);
     assert.ok(ids.includes(app.slot(3, 10).id), 'slot is bookable again');
     await app.ctx.flush();
-    const mail = app.ctx.db.prepare("SELECT * FROM outbox WHERE booking_id=? AND to_addr='refund@example.com' ORDER BY id DESC").get(row.id);
-    assert.doesNotMatch(mail.subject + mail.body, /refund/i, 'client emails do not use the word refund');
+    const mails = app.ctx.db.prepare("SELECT * FROM outbox WHERE booking_id=? AND to_addr='refund@example.com' ORDER BY id").all(row.id);
+    assert.ok(mails.some((m) => /Cancellation request received/.test(m.subject)));
+    for (const m of mails) assert.doesNotMatch(m.subject + m.body, /refund/i, 'client emails do not use the word refund');
+  });
+
+  test('cancellation requests close 24h before the appointment', async () => {
+    const b = await app.book(app.slot(1, 15).id); // tomorrow 15:00, 31h away
+    await app.pay(b);
+    app.clock.advance(8 * HOUR); // 23h away
+    try {
+      const r = await app.call('POST', `/api/manage/${b.body.reference}/refund-request`, { t: b.body.token }, { headers: { 'X-Lang': 'ar' } });
+      assert.equal(r.status, 403);
+      assert.match(r.body.error, /يمكن الإلغاء حتى 24 ساعة/);
+      assert.equal((await app.status(b)).body.canCancel, false);
+    } finally { app.clock.advance(-8 * HOUR); }
   });
 
   test('admin refund is impossible once the appointment has started', async () => {

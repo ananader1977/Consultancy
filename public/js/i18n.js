@@ -5,16 +5,18 @@ try { saved = localStorage.getItem('lang'); } catch { /* storage unavailable */ 
 const ADMIN = location.pathname.startsWith('/admin');
 export const LANG = ADMIN ? 'en' : param === 'ar' || param === 'en' ? param : saved === 'ar' ? 'ar' : 'en';
 try { if (param === 'ar' || param === 'en') localStorage.setItem('lang', param); } catch { /* ignore */ }
+// Arabic: 3-10 hours take the plural 'ساعات'
+const hrsAr = (n) => `${n} ${n >= 3 && n <= 10 ? 'ساعات' : 'ساعة'}`;
 export const AR = LANG === 'ar';
 export const BRAND_AR = 'لما الصفدي لدراسات العلوم الإجتماعية';
 
 const D = {
   en: {
     manageNav: 'Manage booking', langBtn: 'العربية', dubai: 'Dubai',
-    contactUs: 'Contact us', phoneL: 'Phone', whatsappL: 'WhatsApp', phoneWa: 'Phone / WhatsApp', emailF: 'Email', facebookL: 'Facebook',
+    contactUs: 'Contact us', phoneL: 'Phone', whatsappL: 'WhatsApp', phoneWa: 'Phone / WhatsApp', emailF: 'Email', facebookL: 'Instagram',
     network: 'Network error. Please check your connection.',
     bookTitle: 'Book an appointment',
-    intro: (a, b, m) => `Mon–Sat, ${a}:00–${b}:00 Dubai time · 1-hour sessions · your slot is held for ${m} minutes while you pay.`,
+    intro: (a, b, m) => `Mon–Sat, ${a}:00–${b}:00 Dubai time · 1-hour sessions · your slot stays available for ${m} minutes to complete the payment.`,
     steps: ['1 Session', '2 Time', '3 Details', '4 Pay'],
     chooseService: '1. Choose a session', pickTime: '2. Pick a time', yourDetails: '3. Your details',
     svcOnline: 'Online', svcOffline: 'Office',
@@ -39,18 +41,19 @@ const D = {
     errTerms: 'Please accept the Terms & Conditions to continue.', reserving: 'Reserving your slot…',
     slotTaken: 'Sorry, that slot was just taken. Please choose another.',
     confirmedTitle: 'Booking confirmed ✔', waitingPay: 'Waiting for payment', bookingIs: (s) => `Booking ${s}`,
-    thanks: 'Thank you! A confirmation with your tax invoice and calendar invite has been emailed to you.',
-    thanksNoEmail: 'Thank you! Your booking is confirmed. Download your tax invoice below and save your booking link.',
+    thanks: 'Thank you! A confirmation with your invoice and calendar invite has been emailed to you.',
+    thanksNoEmail: 'Thank you! Your booking is confirmed. Download your invoice below and save your booking link.',
     heldA: 'Time left to pay: ', heldB: '. Complete the payment to confirm your booking.',
     expired: 'The payment window expired and the slot was released. If you were charged, your payment will be returned automatically. ',
     bookAgain: 'Book again', payCancelled: 'Payment was cancelled. You can try again below.',
     reference: 'Reference', status: 'Status', service: 'Service', when: 'When', total: 'Total',
-    inclVatAmt: (v) => ` (incl. VAT ${v})`, meetingLink: 'Meeting link', taxInvoice: 'Tax invoice',
+    inclVatAmt: (v) => ` (incl. VAT ${v})`, meetingLink: 'Meeting link', taxInvoice: 'Invoice',
     chooseAnother: 'Choose another slot', reschedOrRefund: 'Change appointment', print: 'Print',
     saveTitle: 'Save your booking link',
     saveText: 'Use this link any time to view or change your booking. We have also emailed it to you.',
     saveTextNoEmail: 'Bookmark or copy this link: use it any time to view or change your booking. You can also find your booking with its reference and your mobile number.',
-    copy: 'Copy link', copied: 'Link copied', share: 'Share', shareWa: 'Share on WhatsApp', waText: (ref, url) => `My booking ${ref}: ${url}`,
+    copy: 'Copy link', copied: 'Link copied', payLinkTitle: 'Payment link', payLinkText: 'Save or share this link to complete the payment (while your time is still held).', waPayText: (ref, url) => `Payment link for booking ${ref}: ${url}`,
+    cancelTitle: 'Cancel appointment', cancelInfo: (h) => `You can request cancellation up to ${h} hours before the appointment. Our team will review your request.`, reasonL: 'Reason (optional)', confirmCancel: 'Send a request to cancel this appointment?', cancelSent: 'Cancellation request sent', requestCancel: 'Request cancellation', cancelClosed: (h) => `Cancellation is possible up to ${h} hours before the appointment. Please contact us.`, awaitingCancel: 'Your cancellation request is being reviewed. We will contact you.', wasCancelled: 'This booking was cancelled.', share: 'Share', shareWa: 'Share on WhatsApp', waText: (ref, url) => `My booking ${ref}: ${url}`,
     manageTitle: 'Manage your booking', manageIntro: 'Enter your booking reference and the mobile number used when booking.',
     findBooking: 'Find booking', bookingRef: 'Booking reference', emailL: 'Email', mobileL: 'Mobile number', tryAgain: 'Try again',
     yourBooking: 'Your booking', downloadPdf: 'Download PDF', continueToPay: 'Continue to payment',
@@ -66,10 +69,10 @@ const D = {
   },
   ar: {
     manageNav: 'إدارة الحجز', langBtn: 'English', dubai: 'بتوقيت دبي',
-    contactUs: 'تواصل معنا', phoneL: 'الهاتف', whatsappL: 'واتساب', phoneWa: 'الهاتف / واتساب', emailF: 'البريد الإلكتروني', facebookL: 'فيسبوك',
+    contactUs: 'تواصل معنا', phoneL: 'الهاتف', whatsappL: 'واتساب', phoneWa: 'الهاتف / واتساب', emailF: 'البريد الإلكتروني', facebookL: 'إنستغرام',
     network: 'خطأ في الشبكة. يرجى التحقق من الاتصال.',
     bookTitle: 'احجز موعداً',
-    intro: (a, b, m) => `من الاثنين إلى السبت، ${a}:00–${b}:00 بتوقيت دبي · جلسات مدتها ساعة · يُحجز موعدك لمدة ${m} دقائق أثناء الدفع.`,
+    intro: (a, b, m) => `من الاثنين إلى السبت، ${a}:00–${b}:00 بتوقيت دبي · جلسات مدتها ساعة · يبقى الموعد متاحاً لمدة ${m} دقائق لإتمام عملية الدفع.`,
     steps: ['1 الجلسة', '2 الموعد', '3 البيانات', '4 الدفع'],
     chooseService: '1. اختر الجلسة', pickTime: '2. اختر الموعد', yourDetails: '3. بياناتك',
     svcOnline: 'مكالمة هاتف، زوم أو بوتيم', svcOffline: 'جلسة في المكتب',
@@ -78,7 +81,7 @@ const D = {
     prev: 'السابق', next: 'التالي', prevWeek: 'الأسبوع السابق', nextWeek: 'الأسبوع التالي', weekly: 'المواعيد الأسبوعية المتاحة',
     lunch: 'استراحة', book: 'احجز',
     noSlots: 'لا توجد مواعيد متاحة هذا الأسبوع. جرّب الأسبوع التالي.',
-    onlyAvail: (h) => `تظهر المواعيد المتاحة فقط. إعادة الجدولة مجانية حتى ${h} ساعة قبل موعدك.`,
+    onlyAvail: (h) => `تظهر المواعيد المتاحة فقط. إعادة الجدولة مجانية حتى ${hrsAr(h)} قبل موعدك.`,
     fullName: 'الاسم *', mobile: 'رقم الجوال (مع رمز الدولة) *', email: 'البريد الإلكتروني *', platform: 'طريقة الاتصال *', platformName: (p) => ({ 'Phone call': 'مكالمة هاتفية', Zoom: 'زوم', Botim: 'بوتيم', 'Microsoft Teams': 'مايكروسوفت تيمز' }[p] || p),
     termsA: 'قرأت وأوافق على ', termsLink: 'الشروط والأحكام', termsB: '، بما في ذلك قواعد تغيير الموعد. *',
     notMedicalTitle: '', notMedical: [
@@ -94,26 +97,27 @@ const D = {
     errTerms: 'يرجى الموافقة على الشروط والأحكام للمتابعة.', reserving: 'جارٍ حجز موعدك…',
     slotTaken: 'عذراً، تم حجز هذا الموعد للتو. يرجى اختيار موعد آخر.',
     confirmedTitle: 'تم تأكيد الحجز ✔', waitingPay: 'بانتظار الدفع', bookingIs: (s) => `الحجز: ${s}`,
-    thanks: 'شكراً لك! أرسلنا إلى بريدك الإلكتروني تأكيد الحجز مع الفاتورة الضريبية ودعوة التقويم.',
-    thanksNoEmail: 'شكراً لك! تم تأكيد حجزك. نزّل فاتورتك الضريبية من الأسفل واحفظ رابط حجزك.',
+    thanks: 'شكراً لك! أرسلنا إلى بريدك الإلكتروني تأكيد الحجز مع الفاتورة ودعوة التقويم.',
+    thanksNoEmail: 'شكراً لك! تم تأكيد حجزك. نزّل فاتورتك من الأسفل واحفظ رابط حجزك.',
     heldA: 'الوقت المتبقي للدفع: ', heldB: '. أكمل الدفع لتأكيد حجزك.',
     expired: 'انتهت مهلة الدفع وأُلغي حجز الموعد. إذا تم خصم أي مبلغ فسيُعاد إليك تلقائياً. ',
     bookAgain: 'احجز مجدداً', payCancelled: 'تم إلغاء الدفع. يمكنك المحاولة مرة أخرى.',
     reference: 'رقم الحجز', status: 'الحالة', service: 'الخدمة', when: 'الموعد', total: 'الإجمالي',
-    inclVatAmt: (v) => ` (شامل ضريبة القيمة المضافة ${v})`, meetingLink: 'رابط الاجتماع', taxInvoice: 'الفاتورة الضريبية',
+    inclVatAmt: (v) => ` (شامل ضريبة القيمة المضافة ${v})`, meetingLink: 'رابط الاجتماع', taxInvoice: 'الفاتورة',
     chooseAnother: 'اختر موعداً آخر', reschedOrRefund: 'تغيير الموعد', print: 'طباعة',
     saveTitle: 'احفظ رابط حجزك',
     saveText: 'استخدم هذا الرابط في أي وقت لعرض حجزك أو تغييره. أرسلناه أيضاً إلى بريدك الإلكتروني.',
     saveTextNoEmail: 'احفظ هذا الرابط أو انسخه لاستخدامه في أي وقت لعرض حجزك أو تغييره. ويمكنك أيضاً العثور على حجزك برقم الحجز ورقم جوالك.',
-    copy: 'نسخ الرابط', copied: 'تم نسخ الرابط', share: 'مشاركة', shareWa: 'مشاركة عبر واتساب', waText: (ref, url) => `حجزي ${ref}: ${url}`,
+    copy: 'نسخ الرابط', copied: 'تم نسخ الرابط', payLinkTitle: 'رابط الدفع', payLinkText: 'احفظ هذا الرابط أو شاركه لإتمام الدفع (ما دام الموعد محجوزاً).', waPayText: (ref, url) => `رابط الدفع للحجز ${ref}: ${url}`,
+    cancelTitle: 'إلغاء الموعد', cancelInfo: (h) => `يمكنك طلب الإلغاء حتى ${hrsAr(h)} قبل الموعد، وسيراجع فريقنا طلبك.`, reasonL: 'السبب (اختياري)', confirmCancel: 'هل تريد إرسال طلب لإلغاء هذا الموعد؟', cancelSent: 'تم إرسال طلب الإلغاء', requestCancel: 'طلب الإلغاء', cancelClosed: (h) => `يمكن الإلغاء حتى ${hrsAr(h)} قبل الموعد. يرجى التواصل معنا.`, awaitingCancel: 'طلب الإلغاء قيد المراجعة، وسنتواصل معك.', wasCancelled: 'تم إلغاء هذا الحجز.', share: 'مشاركة', shareWa: 'مشاركة عبر واتساب', waText: (ref, url) => `حجزي ${ref}: ${url}`,
     manageTitle: 'إدارة حجزك', manageIntro: 'أدخل رقم الحجز ورقم الجوال المستخدم عند الحجز.',
     findBooking: 'البحث عن الحجز', bookingRef: 'رقم الحجز', emailL: 'البريد الإلكتروني', mobileL: 'رقم الجوال', tryAgain: 'حاول مرة أخرى',
     yourBooking: 'حجزك', downloadPdf: 'تنزيل PDF', continueToPay: 'المتابعة إلى الدفع',
     reschedule: 'تغيير الموعد',
     changesLeft: (n, max, d) => `يمكنك تغيير هذا الحجز ${n === 1 ? 'مرة واحدة أخرى' : n === 2 ? 'مرتين أخريين' : `${n} مرات أخرى`} (بحد أقصى ${max === 2 ? 'مرتين' : `${max} مرات`} خلال ${d} يوماً).`,
     noChangesLeft: (max, d) => `تم تغيير هذا الحجز ${max === 2 ? 'مرتين' : `${max} مرات`} خلال ${d} يوماً. لا يمكن إجراء أي تغيير آخر.`,
-    freeUntil: (h) => `مجاناً حتى ${h} ساعة قبل موعدك.`, chooseNewTime: 'اختر موعداً جديداً',
-    reschedClosed: (h) => `تُغلق إعادة الجدولة الذاتية قبل ${h} ساعة من الموعد. يرجى التواصل معنا لتغييره.`, started: 'لقد بدأ الموعد بالفعل.',
+    freeUntil: (h) => `مجاناً حتى ${hrsAr(h)} قبل موعدك.`, chooseNewTime: 'اختر موعداً جديداً',
+    reschedClosed: (h) => `تُغلق إعادة الجدولة الذاتية قبل ${hrsAr(h)} من الموعد. يرجى التواصل معنا لتغييره.`, started: 'لقد بدأ الموعد بالفعل.',
     loading: 'جارٍ التحميل…', day: 'اليوم', confirmMove: (d, t) => `هل تريد نقل حجزك إلى ${d} الساعة ${t}؟`, rescheduled: 'تمت إعادة الجدولة',
     demoCheckout: 'دفع تجريبي', demoNote: 'هذه صفحة دفع تجريبية، ولن يتم خصم أي مبلغ من البطاقة.',
     amount: 'المبلغ', cardNumber: 'رقم البطاقة', pay: (x) => `ادفع ${x}`, processing: 'جارٍ المعالجة…', payNow: 'ادفع الآن', cancel: 'إلغاء',
@@ -166,7 +170,7 @@ async function addFooter() {
       el('a', { class: 'wa', href: `https://wa.me/${digits}`, target: '_blank', rel: 'noopener', 'aria-label': `${T.whatsappL} ${c.phone}` }, T.whatsappL)));
   }
   if (c.email) items.push(el('li', {}, el('span', { class: 'k' }, T.emailF), el('a', { href: `mailto:${c.email}`, dir: 'ltr' }, c.email)));
-  if (c.facebook) items.push(el('li', {}, el('span', { class: 'k' }, T.facebookL), el('a', { href: `https://www.facebook.com/${encodeURIComponent(c.facebook)}`, target: '_blank', rel: 'noopener', dir: 'ltr' }, c.facebook)));
+  if (c.facebook) items.push(el('li', {}, el('span', { class: 'k' }, T.facebookL), el('a', { href: `https://www.instagram.com/${encodeURIComponent(c.facebook)}`, target: '_blank', rel: 'noopener', dir: 'ltr' }, c.facebook)));
   const name = AR ? c.companyAr || BRAND_AR : c.company;
   const foot = el('footer', { class: 'site-foot' }, el('div', { class: 'wrap' }, el('ul', {}, el('li', { class: 'h' }, T.contactUs), ...items), el('p', { class: 'name' }, name)));
   document.body.append(foot);

@@ -350,6 +350,8 @@ export function createService(ctx) {
       maxChanges: s.max_changes,
       changeWindowDays: s.change_window_days,
       canReschedule: paid && hoursLeft >= s.free_reschedule_hours && changesLeft(b) > 0,
+      canCancel: paid && hoursLeft >= s.cancel_hours,
+      cancelHours: s.cancel_hours,
       freeRescheduleHours: s.free_reschedule_hours,
       invoiceToken: b.invoice_number ? invoiceToken(b.invoice_number) : null,
       hasEmail: !!b.email,
@@ -404,12 +406,13 @@ export function createService(ctx) {
   function requestRefund(id, reason) {
     const updated = tx(() => {
       const b = mustBooking(id);
-      if (b.status !== 'confirmed' || b.payment_status !== 'paid') throw new HttpError(409, 'Only confirmed, paid bookings can be refunded.');
-      if (b.start_ts <= ctx.now()) throw new HttpError(409, 'Refunds can only be requested before the appointment time.');
+      if (b.status !== 'confirmed' || b.payment_status !== 'paid') throw new HttpError(409, 'Only confirmed, paid bookings can be cancelled.');
+      const hrs = ctx.settings().cancel_hours;
+      if ((b.start_ts - ctx.now()) / T.HOUR < hrs) throw new HttpError(403, `Cancellation is possible up to ${hrs} hours before the appointment. Please contact us.`);
       q("UPDATE bookings SET status='refund_requested', refund_reason=?, updated_at=? WHERE id=?").run(clampStr(reason, 500), ctx.now(), b.id);
       return bookingById(b.id);
     });
-    audit('customer', 'refund.requested', updated.id, updated.refund_reason);
+    audit('customer', 'cancellation.requested', updated.id, updated.refund_reason);
     ctx.background(ctx.notifier.refundRequested(updated));
     return updated;
   }
@@ -633,6 +636,7 @@ export function createService(ctx) {
       lock_minutes: (v) => intIn(v, 1, 120, 'Slot lock minutes'),
       free_reschedule_hours: (v) => intIn(v, 0, 720, 'Free reschedule hours'),
       max_changes: (v) => intIn(v, 0, 20, 'Max changes'),
+      cancel_hours: (v) => intIn(v, 0, 720, 'Cancellation allowed until (hours before)'),
       payment_link_hours: (v) => intIn(v, 1, 168, 'Payment link validity (hours)'),
       change_window_days: (v) => intIn(v, 1, 365, 'Change window days'),
       slot_days: (v) => intIn(v, 7, 180, 'Booking window days'),
@@ -642,7 +646,7 @@ export function createService(ctx) {
       company_name_ar: (v) => str(v, 150),
       contact_phone: (v) => str(v, 40),
       contact_email: (v) => { v = str(v, 254).toLowerCase(); if (v && !isEmail(v)) throw new HttpError(400, 'Contact email is invalid.'); return v; },
-      facebook: (v) => str(v, 120).replace(/^https?:\/\/(www\.)?facebook\.com\//i, '').replace(/\/+$/, ''),
+      facebook: (v) => str(v, 120).replace(/^https?:\/\/(www\.)?(instagram|facebook)\.com\//i, '').replace(/^@/, '').replace(/\/+$/, ''), // Instagram handle (key kept for compatibility)
       terms_text_ar: (v) => { v = String(v ?? '').replace(/\r\n/g, '\n').trim().slice(0, 20000); if (v.length < 20) throw new HttpError(400, 'Arabic Terms & Conditions text is too short.'); return v; },
       terms_text: (v) => { v = String(v ?? '').replace(/\r\n/g, '\n').trim().slice(0, 20000); if (v.length < 20) throw new HttpError(400, 'Terms & Conditions text is too short.'); return v; },
       closed_days: (v) => {

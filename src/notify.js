@@ -64,7 +64,7 @@ export function createNotifier(ctx) {
 <p style="font-size:12px;color:#6b7280;text-align:center;line-height:1.6">${escHtml(s.company_name)}${s.company_address ? ' - ' + escHtml(s.company_address) : ''}<br>${[
   s.contact_phone && `Tel / WhatsApp: <a href="tel:${escHtml(s.contact_phone.replace(/[^+\d]/g, ''))}" style="color:#5b4a8a">${escHtml(s.contact_phone)}</a>`,
   s.contact_email && `Email: <a href="mailto:${escHtml(s.contact_email)}" style="color:#5b4a8a">${escHtml(s.contact_email)}</a>`,
-  s.facebook && `Facebook: <a href="https://www.facebook.com/${escHtml(s.facebook)}" style="color:#5b4a8a">${escHtml(s.facebook)}</a>`,
+  s.facebook && `Instagram: <a href="https://www.instagram.com/${escHtml(s.facebook)}" style="color:#5b4a8a">${escHtml(s.facebook)}</a>`,
 ].filter(Boolean).join(' &nbsp;|&nbsp; ')}</p></div></body></html>`;
 
   const details = (b, s) => {
@@ -136,7 +136,7 @@ export function createNotifier(ctx) {
       await sendBoth(b, s, {
         subject: `Booking confirmed - ${b.reference}`,
         headline: 'Your appointment is confirmed',
-        intro: 'Thank you - your payment was received and your appointment is confirmed. Your tax invoice and a calendar entry are attached.',
+        intro: 'Thank you - your payment was received and your appointment is confirmed. Your invoice and a calendar entry are attached.',
         extraClient: `<p style="font-size:14px">You can change your appointment free of charge up to ${s.free_reschedule_hours} hours before it, up to ${s.max_changes} times within ${s.change_window_days} days.</p>`,
         attachments: [invoiceAttachment(inv), icsAttachment(b, s, 'PUBLISH')],
         ownerSubject: `New confirmed booking - ${b.reference} - ${b.customer_name} - ${fmtStamp(b.start_ts)}`,
@@ -160,10 +160,11 @@ export function createNotifier(ctx) {
     async refundRequested(b) {
       const s = ctx.settings();
       await sendBoth(b, s, {
-        subject: `Refund request received - ${b.reference}`,
-        headline: 'We received your refund request',
-        intro: 'We received your cancellation and refund request. We will review it and update you by email. Your slot stays reserved until then.',
-        ownerNote: `Refund requested for ${escHtml(b.reference)}. Reason: ${escHtml(b.refund_reason || '-')}. Approve it in the admin console before the appointment time.`,
+        subject: `Cancellation request received - ${b.reference}`,
+        headline: 'We received your cancellation request',
+        intro: 'We received your request to cancel this appointment. Our team will review it and contact you. Your time stays reserved until then.',
+        ownerSubject: `Cancellation requested - ${b.reference} - ${b.customer_name}`,
+        ownerNote: `Cancellation requested for ${escHtml(b.reference)}. Reason: ${escHtml(b.refund_reason || '-')}. Approve (cancels and returns the payment) or reject it in Admin → Cancellations.`,
       });
     },
     async bookingUpdated(b, changes) {
@@ -195,7 +196,7 @@ export function createNotifier(ctx) {
       await sendBoth(b, s, {
         subject: `Booking cancelled - ${b.reference}`,
         headline: 'Your booking was cancelled',
-        intro: `Your booking was cancelled and your payment of <b>${dh()}${money(b.total)}</b> was returned to your card (it can take 5-10 business days to appear). A tax credit note is attached.`,
+        intro: `Your booking was cancelled and your payment of <b>${dh()}${money(b.total)}</b> was returned to your card (it can take 5-10 business days to appear). A credit note is attached.`,
         ownerSubject: `Refund processed - ${b.reference}`,
         attachments: inv ? [invoiceAttachment(inv, true)] : [],
         ownerNote: `Refund processed for ${escHtml(b.reference)} (${dh()}${money(b.total)}). Reference: ${escHtml(b.refund_ref || '')}.`,

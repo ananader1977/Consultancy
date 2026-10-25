@@ -2,7 +2,7 @@ import { api, h, $, clear, toast, badge, fmtRange, fmtStamp, fmtTime, dow, dayLa
 
 const app = $('#app'), dlg = $('#dlg'), nav = $('#nav');
 const S = { me: null, tab: 'dashboard', weekStart: null, cfg: null };
-const TABS = [['dashboard', 'Dashboard'], ['calendar', 'Calendar'], ['bookings', 'Bookings'], ['refunds', 'Refunds'], ['invoices', 'Invoices'], ['services', 'Prices'], ['settings', 'Settings'], ['admins', 'Admins'], ['messages', 'Messages']];
+const TABS = [['dashboard', 'Dashboard'], ['calendar', 'Calendar'], ['bookings', 'Bookings'], ['refunds', 'Cancellations'], ['invoices', 'Invoices'], ['services', 'Prices'], ['settings', 'Settings'], ['admins', 'Admins'], ['messages', 'Messages']];
 const shown = new Set();
 let pollTimer;
 
@@ -101,7 +101,7 @@ const VIEWS = {
 
   async refunds(el) {
     const r = await A('GET', '/bookings?status=refund_requested');
-    clear(el).append(h('h2', {}, 'Refund requests'), r.bookings.length ? h('div', { class: 'tablewrap' }, bookingTable(r.bookings, true)) : h('p', { class: 'muted' }, 'No pending refund requests.'));
+    clear(el).append(h('h2', {}, 'Cancellation requests'), r.bookings.length ? h('div', { class: 'tablewrap' }, bookingTable(r.bookings, true)) : h('p', { class: 'muted' }, 'No pending cancellation requests.'));
   },
 
   async invoices(el) {
@@ -116,14 +116,14 @@ const VIEWS = {
     const r = await A('GET', '/services');
     const rowFor = (s) => { const price = h('input', { type: 'number', min: 0, step: '0.01', value: s.price }); const name = h('input', { value: s.name }); const act = h('input', { type: 'checkbox', checked: !!s.active });
       return h('div', { class: 'card' }, h('div', { class: 'row' }, h('div', {}, h('label', {}, 'Name'), name), h('div', {}, h('label', {}, `Price (\u20C3, ${S.cfg.pricesIncludeVat ? 'VAT incl.' : 'before VAT'})`), price)),
-        h('label', {}, act, ' Active (shown to customers)'), h('p', {}, h('button', { class: 'btn', onclick: () => run(() => A('PUT', `/services/${s.id}`, { name: name.value, price: price.value, active: act.checked }), 'Saved') }, `Save ${s.kind}`))); };
-    clear(el).append(h('h2', {}, 'Services & prices'), h('p', { class: 'muted' }, 'Changes apply to new bookings only. Existing bookings keep the price they were booked at.'), r.services.map(rowFor));
+        h('label', { class: 'terms' }, act, h('span', {}, 'Active (shown to customers)')), h('p', {}, h('button', { class: 'btn', onclick: () => run(() => A('PUT', `/services/${s.id}`, { name: name.value, price: price.value, active: act.checked }), 'Saved') }, `Save ${s.name}`))); };
+    clear(el).append(h('h2', {}, 'Services & prices'), h('p', { class: 'muted' }, 'Changes apply to new bookings only. Existing bookings keep the price they were booked at.'), ...r.services.map(rowFor));
   },
 
   async settings(el) {
     const r = await A('GET', '/settings'); const s = r.settings;
-    const fields = [['company_name', 'Company name'], ['company_name_ar', 'Company name (Arabic)'], ['company_address', 'Address'], ['company_trn', 'Tax Registration Number (TRN)'], ['owner_name', 'Owner name'], ['owner_email', 'Admin notification email (new & modified bookings)'], ['contact_phone', 'Contact phone / WhatsApp (shown to clients)'], ['contact_email', 'Contact email (shown to clients)'], ['facebook', 'Facebook page name'], ['vat_rate', 'VAT %'],
-      ['work_start', 'Day starts (hour)'], ['work_end', 'Day ends (hour)'], ['lunch_start', 'Lunch hour (-1 = none)'], ['lock_minutes', 'Slot lock (minutes)'], ['free_reschedule_hours', 'Free reschedule until (hours before)'], ['max_changes', 'Max client changes per booking'], ['payment_link_hours', 'Payment link valid for (hours)'], ['change_window_days', 'Within (calendar days)'],
+    const fields = [['company_name', 'Company name'], ['company_name_ar', 'Company name (Arabic)'], ['company_address', 'Address'], ['company_trn', 'Tax Registration Number (TRN)'], ['owner_name', 'Owner name'], ['owner_email', 'Admin notification email (new & modified bookings)'], ['contact_phone', 'Contact phone / WhatsApp (shown to clients)'], ['contact_email', 'Contact email (shown to clients)'], ['facebook', 'Instagram'], ['vat_rate', 'VAT %'],
+      ['work_start', 'Day starts (hour)'], ['work_end', 'Day ends (hour)'], ['lunch_start', 'Lunch hour (-1 = none)'], ['lock_minutes', 'Slot lock (minutes)'], ['free_reschedule_hours', 'Client changes allowed until (hours before)'], ['cancel_hours', 'Client cancellation allowed until (hours before)'], ['max_changes', 'Max client changes per booking'], ['payment_link_hours', 'Payment link valid for (hours)'], ['change_window_days', 'Within (calendar days)'],
       ['reminder_hours', 'Admin reminder (hours before)'], ['slot_days', 'Booking window (days)'], ['zoom_link', 'Default Zoom link'], ['closed_days', 'Closed weekdays (0=Sun, comma separated)']];
     const inputs = Object.fromEntries(fields.map(([k]) => [k, h('input', { value: Array.isArray(s[k]) ? s[k].join(',') : s[k] ?? '' })]));
     inputs.company_name_ar.dir = 'rtl';
@@ -185,8 +185,8 @@ async function detail(id) {
   } }, b.status === 'pending' ? 'Send link by WhatsApp' : 'WhatsApp client'));
   if (b.status === 'pending') btns.push(h('button', { class: 'btn', onclick: async () => { const r = await run(async () => { await save(); return A('POST', `/bookings/${id}/payment-link`, {}); }); if (r) { toast(`Payment link ready (valid until ${fmtStamp(r.booking.lock_expires)}, copied). ${deliveryText(r.delivery)}`, 12000); try { await navigator.clipboard.writeText(r.payUrl); } catch { /* clipboard blocked */ } refresh(); } } }, 'Send payment link'));
   if (b.status === 'pending') btns.push(h('button', { class: 'btn ok', onclick: async () => { if (await run(() => A('POST', `/bookings/${id}/mark-paid`, {}), 'Marked paid')) { dlg.close(); refresh(); } } }, 'Mark paid'), h('button', { class: 'btn danger', onclick: async () => { if (await run(() => A('POST', `/bookings/${id}/cancel`, {}), 'Cancelled')) { dlg.close(); refresh(); } } }, 'Cancel'));
-  if (b.status === 'refund_requested') btns.push(h('button', { class: 'btn ok', onclick: () => approve(b) }, 'Approve refund'), h('button', { class: 'btn danger', onclick: () => reject(b) }, 'Reject'));
-  if (b.status === 'confirmed') btns.push(h('button', { class: 'btn danger', onclick: () => approve(b) }, 'Refund & cancel'));
+  if (b.status === 'refund_requested') btns.push(h('button', { class: 'btn ok', onclick: () => approve(b) }, 'Approve cancellation'), h('button', { class: 'btn danger', onclick: () => reject(b) }, 'Reject'));
+  if (b.status === 'confirmed') btns.push(h('button', { class: 'btn danger', onclick: () => approve(b) }, 'Cancel & return payment'));
   modal(h('h2', {}, b.reference, ' ', badge(b.status), ' ', badge(b.payment_status)),
     h('dl', { class: 'kv' }, h('dt', {}, 'When'), h('dd', {}, fmtRange(b.start, b.end)), h('dt', {}, 'Service'), h('dd', {}, `${b.service_name}${b.platform ? ' · ' + b.platform : ''}`), h('dt', {}, 'Total'), h('dd', {}, money(b.total)),
       r.invoice ? [h('dt', {}, 'Invoice'), h('dd', {}, r.invoice.number, ' ', h('a', { href: `/api/admin/invoices/${r.invoice.id}/pdf`, target: '_blank', rel: 'noopener' }, 'PDF'))] : null,

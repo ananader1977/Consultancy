@@ -16,7 +16,7 @@ describe('slots and pricing', () => {
     assert.deepEqual([offline.name, offline.price, offline.vat, offline.total], ['Office', 500, 23.81, 500]);
   });
 
-  test('slots are 1 hour, 10:00-18:00, no lunch slot at 13:00, never on Sunday', async () => {
+  test('slots are 1 hour, 10:00-18:00 with no lunch break, never on Sunday', async () => {
     const r = await app.call('GET', '/api/slots?from=2026-10-19&to=2026-10-26');
     assert.equal(r.status, 200);
     const hoursSeen = new Set();
@@ -25,14 +25,13 @@ describe('slots and pricing', () => {
       const p = parts(s.start);
       assert.equal(s.end - s.start, HOUR, 'every slot is exactly one hour');
       assert.ok(p.hour >= 10 && p.hour <= 17, `hour ${p.hour} inside 10-18`);
-      assert.notEqual(p.hour, 13, 'lunch break 13:00-14:00 has no slot');
       assert.notEqual(p.dow, 0, 'no Sunday slots');
       hoursSeen.add(p.hour);
       daysSeen.add(p.dow);
     }
-    assert.deepEqual([...hoursSeen].sort((a, b) => a - b), [10, 11, 12, 14, 15, 16, 17]);
+    assert.deepEqual([...hoursSeen].sort((a, b) => a - b), [10, 11, 12, 13, 14, 15, 16, 17]);
     assert.deepEqual([...daysSeen].sort(), [1, 2, 3, 4, 5, 6], 'Monday-Saturday are open');
-    assert.equal(app.slot(0, 13), undefined);
+    assert.ok(app.slot(0, 13), '13:00 is bookable (no lunch break)');
     assert.equal(app.slot(6, 10), undefined, 'Sunday 25 Oct has no slots');
   });
 
@@ -296,17 +295,17 @@ describe('rescheduling', () => {
     assert.ok(a);
   });
 
-  test('exactly 24h before is still free; one second later it is not', async () => {
-    const b = await paid(1, 10); // Tue 10:00; now Mon 08:00 -> 26h
-    app.clock.advance(2 * HOUR); // Mon 10:00 -> exactly 24h
+  test('exactly 3h before is still free; one second later it is not', async () => {
+    const b = await paid(0, 14); // Mon 14:00; now Mon 08:00 -> 6h
+    app.clock.advance(3 * HOUR); // Mon 11:00 -> exactly 3h
     assert.equal((await app.status(b)).body.canReschedule, true);
     app.clock.advance(1000);
     const st = (await app.status(b)).body;
     assert.equal(st.canReschedule, false);
     const r = await resched(b, app.slot(3, 17).id);
     assert.equal(r.status, 403);
-    assert.match(r.body.error, /24 hours/);
-    app.clock.advance(-2 * HOUR - 1000);
+    assert.match(r.body.error, /3 hours/);
+    app.clock.advance(-3 * HOUR - 1000);
   });
 
   test('wrong token cannot reschedule or even view a booking', async () => {

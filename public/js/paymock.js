@@ -1,4 +1,4 @@
-import { api, h, $, qs, money } from '/js/common.js';
+import { api, h, $, qs, money, payLinkCard } from '/js/common.js';
 import { T, setupPage } from '/js/i18n.js';
 setupPage();
 const app = $('#app'), sid = qs('s'), ref = qs('ref'), t = qs('t');
@@ -16,5 +16,5 @@ try {
     h('div', { class: 'alert' }, T.demoNote),
     h('dl', { class: 'kv' }, h('dt', {}, T.reference), h('dd', {}, s.reference), h('dt', {}, T.service), h('dd', {}, s.service), h('dt', {}, T.when), h('dd', {}, s.when), h('dt', {}, T.amount), h('dd', {}, h('b', {}, money(s.amount)))),
     h('label', {}, T.cardNumber), h('input', { value: '4242 4242 4242 4242', disabled: true }), msg, h('p', {}, btn),
-    h('a', { href: back }, T.cancel)));
+    h('a', { href: back }, T.cancel)), payLinkCard(T, ref, t));
 } catch (e) { app.replaceChildren(h('div', { class: 'alert bad' }, e.message)); }

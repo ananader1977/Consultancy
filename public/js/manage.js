@@ -30,7 +30,14 @@ async function show() {
     out.push(h('div', { class: 'card' }, h('h2', {}, T.reschedule),
       b.canReschedule ? h('div', {}, h('p', { class: 'muted' }, T.freeUntil(b.freeRescheduleHours), ' ', T.changesLeft(b.changesLeft, b.maxChanges, b.changeWindowDays)), h('div', { id: 'rs' }), h('button', { class: 'btn', onclick: () => pickNew(b) }, T.chooseNewTime))
         : h('p', { class: 'muted' }, closed)));
+    out.push(h('div', { class: 'card' }, h('h2', {}, T.cancelTitle),
+      b.canCancel ? [h('p', { class: 'muted' }, T.cancelInfo(b.cancelHours)), h('label', {}, T.reasonL), h('textarea', { id: 'why', rows: 2, maxlength: 300 }),
+        h('p', {}, h('button', { class: 'btn danger', onclick: async (e) => { if (!confirm(T.confirmCancel)) return; e.target.disabled = true;
+          try { await api('POST', `/api/manage/${encodeURIComponent(ref)}/refund-request`, { t: tok, reason: $('#why').value }); toast(T.cancelSent); show(); } catch (x) { toast(x.message); e.target.disabled = false; } } }, T.requestCancel))]
+        : h('p', { class: 'muted' }, T.cancelClosed(b.cancelHours))));
   }
+  if (b.status === 'refund_requested') out.push(h('div', { class: 'alert' }, T.awaitingCancel));
+  if (b.status === 'refunded' || b.status === 'cancelled') out.push(h('div', { class: 'alert' }, T.wasCancelled));
   app.replaceChildren(...out);
 }
 

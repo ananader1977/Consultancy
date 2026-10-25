@@ -1,4 +1,4 @@
-import { api, h, $, qs, fmtRange, money, badge, countdown, toast } from '/js/common.js';
+import { payLinkCard, api, h, $, qs, fmtRange, money, badge, countdown, toast } from '/js/common.js';
 import { T, AR, setupPage } from '/js/i18n.js';
 setupPage();
 const app = $('#app'), ref = qs('ref'), t = qs('t');
@@ -28,6 +28,7 @@ async function load() {
   if (b.status === 'pending') actions.append(h('a', { class: 'btn', href: `/pay.html?ref=${encodeURIComponent(ref)}&t=${encodeURIComponent(t)}` }, T.payNow), h('a', { class: 'btn alt', href: '/' }, T.chooseAnother));
   if (b.status === 'confirmed' || b.status === 'refund_requested') actions.append(h('a', { class: 'btn', href: manage }, T.reschedOrRefund), h('button', { class: 'btn alt', onclick: () => print() }, T.print));
   kids.push(actions);
+  if (b.status === 'pending') kids.push(payLinkCard(T, ref, t));
   if (b.status === 'confirmed' || b.status === 'refund_requested') {
     const full = new URL(manage, location.origin).toString();
     const copyBtn = h('button', { class: 'btn alt sm', type: 'button', onclick: async () => {

@@ -74,3 +74,12 @@ export function countdown(el, until, onDone) {
   tick();
   return () => clearInterval(iv);
 }
+
+/** Card with the payment link: copy + share on WhatsApp (used on the checkout and booking pages). */
+export function payLinkCard(T, ref, token) {
+  const url = new URL(`/pay.html?ref=${encodeURIComponent(ref)}&t=${encodeURIComponent(token)}`, location.origin).toString();
+  const box = h('input', { readonly: true, value: url, dir: 'ltr', onfocus: (e) => e.target.select(), 'aria-label': T.payLinkTitle });
+  const copy = h('button', { class: 'btn alt sm', type: 'button', onclick: async () => { try { await navigator.clipboard.writeText(url); toast(T.copied); } catch { box.select(); } } }, T.copy);
+  const wa = h('a', { class: 'btn wa sm', href: `https://wa.me/?text=${encodeURIComponent(T.waPayText(ref, url))}`, target: '_blank', rel: 'noopener' }, T.shareWa);
+  return h('div', { class: 'card save-link' }, h('h2', {}, T.payLinkTitle), h('p', { class: 'muted' }, T.payLinkText), h('div', { class: 'row' }, box), h('p', { class: 'row' }, copy, wa));
+}

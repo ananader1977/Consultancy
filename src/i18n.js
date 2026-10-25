@@ -19,8 +19,7 @@ const AR = {
   'Booking not found. Check the reference and mobile number.': 'لم يتم العثور على الحجز. تحقّق من رقم الحجز ورقم الجوال.',
   'Please enter your name.': 'يرجى إدخال اسمك.',
   'Only confirmed, paid bookings can be rescheduled.': 'يمكن إعادة جدولة الحجوزات المؤكدة والمدفوعة فقط.',
-  'Only confirmed, paid bookings can be refunded.': 'يمكن استرداد مبالغ الحجوزات المؤكدة والمدفوعة فقط.',
-  'Refunds can only be requested before the appointment time.': 'لا يمكن طلب الاسترداد إلا قبل موعد الجلسة.',
+  'Only confirmed, paid bookings can be cancelled.': 'يمكن إلغاء الحجوزات المؤكدة والمدفوعة فقط.',
   'This appointment has already started.': 'لقد بدأ الموعد بالفعل.',
   'A refund is already being processed for this booking.': 'طلب الاسترداد لهذا الحجز قيد المعالجة بالفعل.',
   'Already refunded.': 'تم الاسترداد بالفعل.',
@@ -32,6 +31,7 @@ const AR = {
   'Internal server error': 'حدث خطأ في الخادم. يرجى المحاولة مرة أخرى.',
 };
 const AR_PATTERNS = [
+  [/^Cancellation is possible up to (\d+) hours before the appointment\. Please contact us\.$/, 'يمكن الإلغاء حتى $1 ساعة قبل الموعد. يرجى التواصل معنا.'],
   [/^Free rescheduling closes (\d+) hours before the appointment\. Please contact us\.$/, 'تُغلق إعادة الجدولة المجانية قبل $1 ساعة من الموعد. يرجى التواصل معنا.'],
   [/^This booking has already been changed (\d+) times within (\d+) days\. No further changes are possible\.$/, 'تم تغيير هذا الحجز $1 مرات خلال $2 يوماً. لا يمكن إجراء أي تغيير آخر.'],
 ];

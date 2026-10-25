@@ -45,7 +45,7 @@ export function registerRoutes(app, ctx) {
   });
   app.get('/api/contact', (req, res) => {
     const s = ctx.settings();
-    res.json({ company: s.company_name, companyAr: s.company_name_ar, phone: s.contact_phone, email: s.contact_email, facebook: s.facebook, address: s.company_address });
+    res.json({ company: s.company_name, companyAr: s.company_name_ar, phone: s.contact_phone, email: s.contact_email, facebook: s.facebook, instagram: s.facebook, address: s.company_address });
   });
   app.get('/api/terms', (req, res) => {
     const s = ctx.settings();
@@ -100,8 +100,7 @@ export function registerRoutes(app, ctx) {
     limit(`refundreq:${ip(req)}`, 10, 10 * 60 * 1000);
     const body = await req.json();
     const b = svc.bookingByToken(req.params.ref, body.t);
-    void b; // clients can no longer cancel online; admin handles any cancellation
-    throw new HttpError(403, 'Online cancellation is not available. Please contact us.');
+    res.json(svc.manageView(svc.requestRefund(b.id, body.reason))); // cancellation request, reviewed by the admin
   });
 
   // invoice PDFs (link in the confirmation email is protected by a signed token)
