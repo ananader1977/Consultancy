@@ -203,7 +203,7 @@ async function reschedulePicker(b) {
   const byDay = new Map(); for (const s of cal) { const k = dateKey(s.start); (byDay.get(k) || byDay.set(k, []).get(k)).push(s); }
   const sel = h('select', {}, [...byDay.keys()].map((k) => h('option', { value: k }, `${dow(byDay.get(k)[0].start)} ${dayLabel(byDay.get(k)[0].start)}`)));
   const list = h('div', { class: 'slotlist' });
-  const fill = () => list.replaceChildren(...(byDay.get(sel.value) || []).map((s) => h('button', { class: 'slot', onclick: async () => { if (await run(() => A('POST', `/bookings/${b.id}/reschedule`, { slotId: s.id }), 'Rescheduled')) { dlg.close(); refresh(); } } }, `${fmtTime(s.start)}`)));
+  const fill = () => list.replaceChildren(...(byDay.get(sel.value) || []).map((s) => h('button', { class: 'slot', onclick: async () => { if (!confirm(`Move ${b.reference} (${b.customer_name})\nfrom ${fmtRange(b.start, b.end)}\nto ${fmtRange(s.start, s.end)}?\n\nThe client will be notified.`)) return; if (await run(() => A('POST', `/bookings/${b.id}/reschedule`, { slotId: s.id }), 'Rescheduled')) { dlg.close(); refresh(); } } }, `${fmtTime(s.start)}`)));
   sel.addEventListener('change', fill); fill();
   modal(h('h2', {}, `Reschedule ${b.reference}`), h('p', { class: 'muted' }, 'Admin can move bookings at any time (no 24h limit). The customer is notified.'), sel, list);
 }

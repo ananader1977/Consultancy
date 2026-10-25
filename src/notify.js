@@ -136,7 +136,7 @@ export function createNotifier(ctx) {
       await sendBoth(b, s, {
         subject: `Booking confirmed - ${b.reference}`,
         headline: 'Your appointment is confirmed',
-        intro: 'Thank you - your payment was received and your appointment is confirmed. Your invoice and a calendar entry are attached.',
+        intro: 'Thank you - your payment was received and your appointment is confirmed. Your tax invoice and a calendar entry are attached.',
         extraClient: `<p style="font-size:14px">You can change your appointment free of charge up to ${s.free_reschedule_hours} hours before it, up to ${s.max_changes} times within ${s.change_window_days} days.</p>`,
         attachments: [invoiceAttachment(inv), icsAttachment(b, s, 'PUBLISH')],
         ownerSubject: `New confirmed booking - ${b.reference} - ${b.customer_name} - ${fmtStamp(b.start_ts)}`,
@@ -196,7 +196,7 @@ export function createNotifier(ctx) {
       await sendBoth(b, s, {
         subject: `Booking cancelled - ${b.reference}`,
         headline: 'Your booking was cancelled',
-        intro: `Your booking was cancelled and your payment of <b>${dh()}${money(b.total)}</b> was returned to your card (it can take 5-10 business days to appear). A credit note is attached.`,
+        intro: `Your booking was cancelled and your payment of <b>${dh()}${money(b.total)}</b> was returned to your card (it can take 5-10 business days to appear). A tax credit note is attached.`,
         ownerSubject: `Refund processed - ${b.reference}`,
         attachments: inv ? [invoiceAttachment(inv, true)] : [],
         ownerNote: `Refund processed for ${escHtml(b.reference)} (${dh()}${money(b.total)}). Reference: ${escHtml(b.refund_ref || '')}.`,

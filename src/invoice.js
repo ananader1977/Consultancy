@@ -16,11 +16,11 @@ const INK = '#1f2937';
 const MUTED = '#6b7280';
 const LINE = '#d1d5db';
 
-/** Render an invoice (or credit note) as a PDF buffer. */
+/** Render a UAE tax invoice (or tax credit note) as a PDF buffer. */
 export function renderInvoicePdf(inv, { creditNote = false, contact = null } = {}) {
   const docNo = creditNote ? inv.credit_note_number : inv.number;
   const docDate = creditNote ? inv.credit_note_at : inv.issued_at;
-  const pdf = new Pdf({ title: `${creditNote ? 'Credit Note' : 'Invoice'} ${docNo}`, author: inv.supplier_name });
+  const pdf = new Pdf({ title: `${creditNote ? 'Tax Credit Note' : 'Tax Invoice'} ${docNo}`, author: inv.supplier_name });
   const L = 45;
   const R = PAGE_W - 45;
   const sign = creditNote ? -1 : 1;
@@ -36,7 +36,7 @@ export function renderInvoicePdf(inv, { creditNote = false, contact = null } = {
   const nameTop = nameLines.length > 2 ? 38 : nameLines.length > 1 ? 44 : 50;
   nameLines.forEach((t, i) => pdf.text(t, nameX, nameTop + i * lh, { size: nameSize, bold: true, fill: INK }));
   pdf.text(inv.supplier_trn ? `TRN: ${inv.supplier_trn}` : 'TRN: -', nameX, nameTop + (nameLines.length - 1) * lh + 15, { size: 10, fill: MUTED });
-  pdf.text(creditNote ? 'CREDIT NOTE' : 'INVOICE', R, 50, { size: 20, bold: true, align: 'right', fill: TEAL });
+  pdf.text(creditNote ? 'TAX CREDIT NOTE' : 'TAX INVOICE', R, 50, { size: 20, bold: true, align: 'right', fill: TEAL });
   pdf.text(`No. ${docNo}`, R, 68, { size: 11, bold: true, align: 'right', fill: INK });
   pdf.rect(L, 100, R - L, 3, { fill: TEAL });
 
@@ -95,7 +95,7 @@ export function renderInvoicePdf(inv, { creditNote = false, contact = null } = {
   label(`Total (AED)`, money(sign * inv.total), true);
 
   y += 24;
-  pdf.text(creditNote ? 'This credit note reverses the invoice above as the payment was returned to the original card.' : 'Paid in full by card. Thank you.', L, y, { size: 10, fill: INK });
+  pdf.text(creditNote ? 'This tax credit note reverses the invoice above as the payment was returned to the original card.' : 'Paid in full by card. Thank you.', L, y, { size: 10, fill: INK });
   pdf.line(L, 780, R, 780, { stroke: LINE });
   pdf.text(inv.supplier_name, PAGE_W / 2, 795, { size: 8, bold: true, align: 'center', fill: MUTED });
   const contactFoot = contact ? [contact.contact_phone, contact.contact_email, contact.facebook && `instagram.com/${contact.facebook}`].filter(Boolean).join('  |  ') : '';
